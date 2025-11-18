@@ -1,0 +1,51 @@
+﻿@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage MySession
+@inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
+@using Moduls
+@using DBL
+
+<h1>Chats</h1>
+@page "/Chats"
+
+<table >
+    <tbody>
+        @foreach (Tuners Contact in Tunerss)
+        {
+            <tr>
+                <td><button>@Contact.username</button></td>
+                
+               
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+
+@code {
+
+    string message = "";
+    List<Tuners> Tunerss = new List<Tuners>();
+    ChatsDB T = new ChatsDB();
+    protected override async Task OnInitializedAsync()
+    {
+
+        var result= await MySession.GetAsync<Tuners>("Tuners");
+
+        if (result.Success)
+        {
+            Tuners tuners = new Tuners();
+            tuners = result.Value;
+            
+        }
+        else
+        {
+            
+        
+        }
+
+        
+
+    }
+
+}

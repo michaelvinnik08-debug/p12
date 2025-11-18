@@ -1,0 +1,282 @@
+﻿@page "/Register"
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage MySession
+@inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
+@using Moduls
+@using DBL
+
+<PageTitle>TUNETALK REGISTER</PageTitle>
+
+<style>
+    :root {
+        --primary-color: #FF7A00;
+        --primary-hover: #FF9E3D;
+        --background1: #3B1F1F;
+        --background2: #1E1A1A;
+        --background3: #4A2C2C;
+        --card-bg: #2E2424;
+        --text-color: #FFF3E2;
+        --muted-text: #C7B6A3;
+        --accent-color: #E94E77;
+        --border-radius: 12px;
+        --input-bg: #3C2E2E;
+        --input-border: #4F3C3C;
+        --shadow: 0 8px 20px rgba(255, 122, 0, 0.4);
+        --transition: all 0.3s ease;
+        --font-family: "Inter", system-ui, sans-serif;
+    }
+
+    /* Remove default margin/padding */
+    body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        overflow-x: hidden;
+        background: transparent;
+        font-family: var(--font-family);
+    }
+
+    /* Background gradient fills entire viewport exactly */
+    .register-page {
+        background: linear-gradient(135deg, var(--background1), var(--background2), var(--background3));
+        background-size: 300% 300%;
+        animation: bgFlow 18s ease-in-out infinite;
+        height: 100vh;
+        width: 100vw;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-color);
+        position: relative;
+        overflow: hidden;
+        user-select: none;
+    }
+
+    /* Card container with clean soft shadow and no outline */
+    .register-card {
+        background-color: var(--card-bg);
+        padding: 2.5rem 3rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        width: 340px;
+        max-width: 90vw;
+        text-align: center;
+        z-index: 10;
+        position: relative;
+        border: none;
+    }
+
+    h1.hero-title {
+        margin-bottom: 1rem;
+        font-weight: 900;
+        font-size: 2.75rem;
+        color: var(--primary-color);
+        text-shadow: 0 0 12px var(--primary-color);
+    }
+
+    h3 {
+        font-weight: 500;
+        margin-bottom: 0.3rem;
+        text-align: left;
+        color: var(--muted-text);
+        user-select: text;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+        width: 100%;
+        padding: 0.6rem 0.85rem;
+        margin-bottom: 1.3rem;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--input-border);
+        background-color: var(--input-bg);
+        color: var(--text-color);
+        font-size: 1.05rem;
+        outline: none;
+        transition: var(--transition);
+        box-shadow: inset 0 0 5px rgba(0,0,0,0.7);
+    }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 12px var(--primary-color);
+            background-color: #412e1a;
+        }
+
+    button {
+        width: 100%;
+        background-color: var(--primary-color);
+        border: none;
+        color: white;
+        font-weight: 700;
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        font-size: 1.1rem;
+        box-shadow: 0 0 15px var(--primary-color);
+        transition: var(--transition);
+        user-select: none;
+    }
+
+        button:hover {
+            background-color: var(--primary-hover);
+            box-shadow: 0 0 20px var(--primary-hover);
+        }
+
+    .register-btn {
+        background-color: transparent;
+        color: var(--primary-color);
+        border: 2px solid var(--primary-color);
+        box-shadow: none;
+        font-weight: 600;
+    }
+
+        .register-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 0 20px var(--primary-color);
+        }
+
+    .message {
+        margin-bottom: 1rem;
+        color: var(--accent-color);
+        font-weight: 600;
+        min-height: 1.2rem;
+        font-size: 0.95rem;
+        user-select: none;
+    }
+
+    /* Background gradient animation */
+    @@keyframes bgFlow {
+        0% {
+            background-position: 0% 50%;
+        }
+
+        50% {
+            background-position: 100% 50%;
+        }
+
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+    /* Music note floating animation */
+    @@keyframes floatMove {
+        0% {
+            transform: translate(0, 0) rotate(0deg);
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.8;
+        }
+
+        100% {
+            transform: translate(var(--move-x), var(--move-y)) rotate(360deg);
+            opacity: 0;
+        }
+    }
+
+    /* Music note style */
+    .music-note {
+        position: fixed;
+        font-size: var(--note-size);
+        color: rgba(255, 122, 0, 0.6);
+        user-select: none;
+        pointer-events: none;
+        animation-name: floatMove;
+        animation-timing-function: linear ;
+        animation-fill-mode: forwards ;
+        animation-iteration-count: infinite;
+    }
+</style>
+
+<div class="register-page">
+    <div class="register-card" tabindex="-1">
+       
+        <h1 class="hero-title">Register</h1>
+
+        <h3>Enter Username</h3>
+        <input type="text" @bind-value="username" autocomplete="username" placeholder="Username" />
+
+        <h3>Enter Email</h3>
+        <input type="email" @bind-value="email" autocomplete="email" placeholder="Email" />
+
+        <h3>Enter Password</h3>
+        <input type="password" @bind-value="password" autocomplete="new-password" placeholder="Password" />
+
+        <button @onclick="Registar" type="button">Register</button>
+        <div class="message">@message</div>
+    </div>
+</div>
+
+@code {
+    string username = "";
+    string email = "";
+    string password = "";
+    string message = "";
+
+    public async Task Registar()
+    {
+        TunersDB T = new TunersDB();
+        Tuners tuners = await T.Reg(username, email, password);
+        if (tuners != null)
+        {
+            await MySession.SetAsync("newsession", tuners);
+            navigationManager.NavigateTo("/Update");
+        }
+        else
+        {
+            email = "";
+            password = "";
+            message = "The email is already in use!";
+        }
+    }
+}
+<script>
+    window.startMusicNotesAnimation = () => {
+        const noteSymbols = ["\u266A", "\u266B", "\u2669", "\u266C"];
+        const totalNotes = 150;
+        const animationDurationRange = [8000, 14000]; // ms
+        const noteSizeRange = [14, 30]; // px
+
+        function randomRange(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        while (True)
+        {
+        for (let i = 0; i < totalNotes; i++) {
+            const note = document.createElement("div");
+            note.classList.add("music-note");
+
+            // Random music note symbol
+            note.textContent = noteSymbols[Math.floor(Math.random() * noteSymbols.length)];
+
+            // Random size
+            const size = randomRange(noteSizeRange[0], noteSizeRange[1]);
+            note.style.setProperty("--note-size", size + "px");
+
+            // Random starting position anywhere on screen
+            note.style.left = randomRange(0, window.innerWidth) + "px";
+            note.style.top = randomRange(0, window.innerHeight) + "px";
+
+            // Random move distance for animation (in px), positive or negative for x and y
+            const moveX = randomRange(-100, 100);
+            const moveY = randomRange(-100, 100);
+            note.style.setProperty("--move-x", moveX + "px");
+            note.style.setProperty("--move-y", moveY + "px");
+
+
+            
+
+
+            document.body.appendChild(note);
+        }
+        }
+    }
+</script>
