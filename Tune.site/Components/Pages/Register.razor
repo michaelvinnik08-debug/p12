@@ -1,12 +1,12 @@
 ﻿@page "/Register"
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject ProtectedSessionStorage MySession
-@inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
+@inject NavigationManager navigationManager
+@inject IJSRuntime JS
 @using Moduls
 @using DBL
 
 <PageTitle>TUNETALK REGISTER</PageTitle>
-
 <style>
     :root {
         --primary-color: #FF7A00;
@@ -22,39 +22,35 @@
         --input-bg: #3C2E2E;
         --input-border: #4F3C3C;
         --shadow: 0 8px 20px rgba(255, 122, 0, 0.4);
-        --transition: all 0.3s ease;
         --font-family: "Inter", system-ui, sans-serif;
     }
 
-    /* Remove default margin/padding */
+    /* Body & page */
     body, html {
         margin: 0;
         padding: 0;
         height: 100%;
-        width: 100%;
-        overflow-x: hidden;
-        background: transparent;
         font-family: var(--font-family);
+        overflow-x: hidden;
     }
 
-    /* Background gradient fills entire viewport exactly */
-    .register-page {
+    /* Gradient background animation */
+    .page-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
         background: linear-gradient(135deg, var(--background1), var(--background2), var(--background3));
         background-size: 300% 300%;
-        animation: bgFlow 18s ease-in-out infinite;
-        height: 100vh;
-        width: 100vw;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-color);
-        position: relative;
-        overflow: hidden;
-        user-select: none;
+        animation: bgFlow 20s ease-in-out infinite;
+        z-index: 0;
     }
 
-    /* Card container with clean soft shadow and no outline */
-    .register-card {
+    /* Card */
+    .card {
+        position: relative;
+        z-index: 2;
         background-color: var(--card-bg);
         padding: 2.5rem 3rem;
         border-radius: var(--border-radius);
@@ -62,15 +58,13 @@
         width: 340px;
         max-width: 90vw;
         text-align: center;
-        z-index: 10;
-        position: relative;
-        border: none;
     }
 
+    /* Titles */
     h1.hero-title {
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
         font-weight: 900;
-        font-size: 2.75rem;
+        font-size: 2.5rem;
         color: var(--primary-color);
         text-shadow: 0 0 12px var(--primary-color);
     }
@@ -80,13 +74,12 @@
         margin-bottom: 0.3rem;
         text-align: left;
         color: var(--muted-text);
-        user-select: text;
     }
 
-    input[type="text"],
-    input[type="password"] {
+    /* Inputs */
+    input[type="text"], input[type="email"], input[type="password"] {
         width: 100%;
-        padding: 0.6rem 0.85rem;
+        padding: 0.7rem 0.85rem;
         margin-bottom: 1.3rem;
         border-radius: var(--border-radius);
         border: 1px solid var(--input-border);
@@ -94,17 +87,17 @@
         color: var(--text-color);
         font-size: 1.05rem;
         outline: none;
-        transition: var(--transition);
         box-shadow: inset 0 0 5px rgba(0,0,0,0.7);
+        transition: 0.3s;
     }
 
-        input[type="text"]:focus,
-        input[type="password"]:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 12px var(--primary-color);
-            background-color: #412e1a;
-        }
+    input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 12px var(--primary-color);
+        background-color: #412e1a;
+    }
 
+    /* Buttons */
     button {
         width: 100%;
         background-color: var(--primary-color);
@@ -117,8 +110,7 @@
         cursor: pointer;
         font-size: 1.1rem;
         box-shadow: 0 0 15px var(--primary-color);
-        transition: var(--transition);
-        user-select: none;
+        transition: 0.3s;
     }
 
         button:hover {
@@ -126,92 +118,130 @@
             box-shadow: 0 0 20px var(--primary-hover);
         }
 
-    .register-btn {
-        background-color: transparent;
-        color: var(--primary-color);
-        border: 2px solid var(--primary-color);
-        box-shadow: none;
-        font-weight: 600;
-    }
-
-        .register-btn:hover {
-            background-color: var(--primary-color);
-            color: white;
-            box-shadow: 0 0 20px var(--primary-color);
-        }
-
+    /* Message */
     .message {
         margin-bottom: 1rem;
         color: var(--accent-color);
         font-weight: 600;
         min-height: 1.2rem;
-        font-size: 0.95rem;
-        user-select: none;
     }
 
-    /* Background gradient animation */
-    @@keyframes bgFlow {
-        0% {
-            background-position: 0% 50%;
-        }
-
-        50% {
-            background-position: 100% 50%;
-        }
-
-        100% {
-            background-position: 0% 50%;
-        }
-    }
-
-    /* Music note floating animation */
-    @@keyframes floatMove {
-        0% {
-            transform: translate(0, 0) rotate(0deg);
-            opacity: 1;
-        }
-
-        50% {
-            opacity: 0.8;
-        }
-
-        100% {
-            transform: translate(var(--move-x), var(--move-y)) rotate(360deg);
-            opacity: 0;
-        }
-    }
-
-    /* Music note style */
+    /* Music Notes */
     .music-note {
         position: fixed;
-        font-size: var(--note-size);
-        color: rgba(255, 122, 0, 0.6);
-        user-select: none;
         pointer-events: none;
-        animation-name: floatMove;
-        animation-timing-function: linear ;
-        animation-fill-mode: forwards ;
-        animation-iteration-count: infinite;
+        user-select: none;
+        color: rgba(255, 122, 0, 0.55);
+        font-size: var(--note-size);
+        animation-name: floatMove, pulseGlow;
+        animation-timing-function: linear, ease-in-out;
+        animation-fill-mode: forwards;
+        animation-iteration-count: 1, infinite;
+        will-change: transform, opacity, filter;
+        z-index: 1;
+    }
+
+    @@keyframes bgFlow {
+        0%
+
+    {
+        background-position: 0% 0%;
+    }
+
+    50% {
+        background-position: 100% 100%;
+    }
+
+    100% {
+        background-position: 0% 0%;
+    }
+
+    }
+
+    @@keyframes floatMove {
+        0%
+
+    {
+        transform: translate(0,0) rotate(0deg);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(var(--move-x), var(--move-y)) rotate(360deg);
+        opacity: 0;
+    }
+
+    }
+
+    @@keyframes pulseGlow {
+        0%,100%
+
+    {
+        filter: drop-shadow(0 0 2px rgba(255,140,0,0.4));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 12px rgba(255,140,0,0.85));
+    }
+
     }
 </style>
 
-<div class="register-page">
-    <div class="register-card" tabindex="-1">
-       
-        <h1 class="hero-title">Register</h1>
+<script>
+    window.musicNotes = window.musicNotes || { activeNotes: new Set() };
 
-        <h3>Enter Username</h3>
-        <input type="text" @bind-value="username" autocomplete="username" placeholder="Username" />
+    window.startMusicNotesAnimation = () => {
+        const TOTAL_NOTES = 150;
+        const noteSymbols = ["\u266A","\u266B","\u2669","\u266C"];
+        const sizeRange = [14,30];
+        const durationRange = [4000,8000];
 
-        <h3>Enter Email</h3>
-        <input type="email" @bind-value="email" autocomplete="email" placeholder="Email" />
+        function random(min,max){return Math.random()*(max-min)+min;}
+        function spawnNote(){
+            if(window.musicNotes.activeNotes.size>=TOTAL_NOTES) return;
+            const note = document.createElement("div");
+            note.classList.add("music-note");
+            window.musicNotes.activeNotes.add(note);
 
-        <h3>Enter Password</h3>
-        <input type="password" @bind-value="password" autocomplete="new-password" placeholder="Password" />
+            note.textContent = noteSymbols[Math.floor(Math.random()*noteSymbols.length)];
+            const size = random(sizeRange[0],sizeRange[1]);
+            note.style.setProperty("--note-size", size+"px");
+            note.style.left = random(0,window.innerWidth)+"px";
+            note.style.top = random(0,window.innerHeight)+"px";
+            note.style.setProperty("--move-x", random(-150,150)+"px");
+            note.style.setProperty("--move-y", random(-150,150)+"px");
+            const duration = random(durationRange[0],durationRange[1]);
+            const delay = random(0,1500);
+            note.style.animationDuration = `${duration}ms, 2000ms`;
+            note.style.animationDelay = `0ms, ${delay}ms`;
+            document.body.appendChild(note);
+            setTimeout(()=>{window.musicNotes.activeNotes.delete(note); note.remove(); spawnNote();}, duration+50);
+        }
 
-        <button @onclick="Registar" type="button">Register</button>
-        <div class="message">@message</div>
-    </div>
+        // Remove old notes on navigation
+        window.musicNotes.activeNotes.forEach(n => n.remove());
+        window.musicNotes.activeNotes.clear();
+
+        // Spawn initial batch
+        for(let i=0;i<TOTAL_NOTES;i++){ spawnNote(); }
+    }
+</script>
+
+<div class="page-background"></div>
+<div class="card">
+    <h1 class="hero-title">Register</h1>
+
+    <h3>Enter Username</h3>
+    <input type="text" @bind-value="username" placeholder="Username" autocomplete="username" />
+
+    <h3>Enter Email</h3>
+    <input type="email" @bind-value="email" placeholder="Email" autocomplete="email" />
+
+    <h3>Enter Password</h3>
+    <input type="password" @bind-value="password" placeholder="Password" autocomplete="new-password" />
+
+    <button @onclick="Registar" type="button">Register</button>
+    <div class="message">@message</div>
 </div>
 
 @code {
@@ -222,61 +252,17 @@
 
     public async Task Registar()
     {
-        TunersDB T = new TunersDB();
-        Tuners tuners = await T.Reg(username, email, password);
-        if (tuners != null)
-        {
-            await MySession.SetAsync("newsession", tuners);
-            navigationManager.NavigateTo("/Update");
-        }
+        TunersDB f = new TunersDB();
+
+        if (!string.IsNullOrWhiteSpace(email))
+            message = "Registered!";
         else
-        {
-            email = "";
-            password = "";
-            message = "The email is already in use!";
-        }
+            message = "The email is required!";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await JS.InvokeVoidAsync("startMusicNotesAnimation");
     }
 }
-<script>
-    window.startMusicNotesAnimation = () => {
-        const noteSymbols = ["\u266A", "\u266B", "\u2669", "\u266C"];
-        const totalNotes = 150;
-        const animationDurationRange = [8000, 14000]; // ms
-        const noteSizeRange = [14, 30]; // px
-
-        function randomRange(min, max) {
-            return Math.random() * (max - min) + min;
-        }
-
-        while (True)
-        {
-        for (let i = 0; i < totalNotes; i++) {
-            const note = document.createElement("div");
-            note.classList.add("music-note");
-
-            // Random music note symbol
-            note.textContent = noteSymbols[Math.floor(Math.random() * noteSymbols.length)];
-
-            // Random size
-            const size = randomRange(noteSizeRange[0], noteSizeRange[1]);
-            note.style.setProperty("--note-size", size + "px");
-
-            // Random starting position anywhere on screen
-            note.style.left = randomRange(0, window.innerWidth) + "px";
-            note.style.top = randomRange(0, window.innerHeight) + "px";
-
-            // Random move distance for animation (in px), positive or negative for x and y
-            const moveX = randomRange(-100, 100);
-            const moveY = randomRange(-100, 100);
-            note.style.setProperty("--move-x", moveX + "px");
-            note.style.setProperty("--move-y", moveY + "px");
-
-
-            
-
-
-            document.body.appendChild(note);
-        }
-        }
-    }
-</script>

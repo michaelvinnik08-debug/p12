@@ -1,15 +1,23 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject ProtectedSessionStorage MySession
-@inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
+@inject NavigationManager navigationManager
+@inject IJSRuntime JS
 @using Moduls
 @using DBL
+
 <PageTitle>TUNETALK LOGIN</PageTitle>
 
 <style>
+    body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
     :root {
         --primary-color: #FF7A00;
-        --primary-hover: #FF9E3D;
         --background1: #3B1F1F;
         --background2: #1E1A1A;
         --background3: #4A2C2C;
@@ -21,39 +29,43 @@
         --input-bg: #3C2E2E;
         --input-border: #4F3C3C;
         --shadow: 0 8px 20px rgba(255, 122, 0, 0.4);
-        --transition: all 0.3s ease;
         --font-family: "Inter", system-ui, sans-serif;
     }
 
-    /* Remove default margin/padding */
-    body, html {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        width: 100%;
-        overflow-x: hidden;
-        background: transparent;
-        font-family: var(--font-family);
-    }
-
-    /* Background gradient fills entire viewport exactly */
     .login-page {
-        background: linear-gradient(135deg, var(--background1), var(--background2), var(--background3));
-        background-size: 300% 300%;
-        animation: bgFlow 18s ease-in-out infinite;
         height: 100vh;
         width: 100vw;
+        background: linear-gradient(135deg, var(--background1), var(--background2), var(--background3));
+        background-size: 300% 300%;
+        animation: bgFlow 20s ease-in-out infinite;
         display: flex;
-        align-items: center;
         justify-content: center;
-        color: var(--text-color);
+        align-items: center;
         position: relative;
         overflow: hidden;
-        user-select: none;
+        z-index: 1;
     }
 
-    /* Card container with clean soft shadow and no outline */
+    @@keyframes bgFlow {
+        0%
+
+    {
+        background-position: 0% 0%;
+    }
+
+    50% {
+        background-position: 100% 100%;
+    }
+
+    100% {
+        background-position: 0% 0%;
+    }
+
+    }
+
     .login-card {
+        position: fixed;
+        z-index: 2;
         background-color: var(--card-bg);
         padding: 2.5rem 3rem;
         border-radius: var(--border-radius);
@@ -61,112 +73,106 @@
         width: 340px;
         max-width: 90vw;
         text-align: center;
-        z-index: 10;
-        position: relative;
-        border: none;
     }
 
-    h1.hero-title {
-        margin-bottom: 1rem;
-        font-weight: 900;
-        font-size: 2.75rem;
-        color: var(--primary-color);
-        text-shadow: 0 0 12px var(--primary-color);
-    }
+        .login-card h1 {
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            text-shadow: 0 0 12px var(--primary-color);
+        }
 
-    h3 {
-        font-weight: 500;
+    label {
+        font-weight: bold;
+        color: var(--muted-text);
+        display: block;
         margin-bottom: 0.3rem;
         text-align: left;
-        color: var(--muted-text);
-        user-select: text;
     }
 
     input[type="text"],
     input[type="password"] {
         width: 100%;
-        padding: 0.6rem 0.85rem;
-        margin-bottom: 1.3rem;
-        border-radius: var(--border-radius);
+        padding: 0.7rem;
+        margin-bottom: 1rem;
+        border-radius: 6px;
         border: 1px solid var(--input-border);
-        background-color: var(--input-bg);
+        font-size: 1rem;
+        background: var(--input-bg);
         color: var(--text-color);
-        font-size: 1.05rem;
-        outline: none;
-        transition: var(--transition);
-        box-shadow: inset 0 0 5px rgba(0,0,0,0.7);
     }
 
-        input[type="text"]:focus,
-        input[type="password"]:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 12px var(--primary-color);
-            background-color: #412e1a;
-        }
+    input:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        background: #4b3a3a;
+    }
 
+    h1.hero-title {
+        margin-bottom: 1.5rem;
+        font-weight: 900;
+        font-size: 2.5rem;
+        color: var(--primary-color);
+        text-shadow: 0 0 12px var(--primary-color);
+    } 
     button {
         width: 100%;
-        background-color: var(--primary-color);
+        padding: 0.7rem;
         border: none;
-        color: white;
-        font-weight: 700;
-        padding: 0.75rem 1rem;
+        border-radius: 6px;
         margin-bottom: 1rem;
-        border-radius: var(--border-radius);
         cursor: pointer;
-        font-size: 1.1rem;
-        box-shadow: 0 0 15px var(--primary-color);
-        transition: var(--transition);
-        user-select: none;
+        font-size: 1rem;
+        font-weight: bold;
+        box-shadow: 0 0 10px transparent;
+        transition: background 0.3s, box-shadow 0.3s;
     }
 
-        button:hover {
-            background-color: var(--primary-hover);
-            box-shadow: 0 0 20px var(--primary-hover);
+    .login-btn {
+        background: var(--primary-color);
+        color: white;
+        box-shadow: 0 0 10px var(--primary-color);
+    }
+
+        .login-btn:hover {
+            background: #ff8f2d;
+            box-shadow: 0 0 20px #ff8f2d;
         }
 
     .register-btn {
-        background-color: transparent;
-        color: var(--primary-color);
+        background: white;
         border: 2px solid var(--primary-color);
-        box-shadow: none;
-        font-weight: 600;
+        color: var(--primary-color);
+        box-shadow: 0 0 10px var(--primary-color);
     }
 
         .register-btn:hover {
-            background-color: var(--primary-color);
+            background: var(--primary-color);
             color: white;
             box-shadow: 0 0 20px var(--primary-color);
         }
 
     .message {
-        margin-bottom: 1rem;
         color: var(--accent-color);
-        font-weight: 600;
-        min-height: 1.2rem;
-        font-size: 0.95rem;
+        min-height: 20px;
+        margin-top: 0.5rem;
+    }
+
+    /* Floating Notes */
+    .music-note {
+        position: fixed;
+        pointer-events: none;
         user-select: none;
+        color: rgba(255, 122, 0, 0.75);
+        font-size: var(--note-size);
+        animation-name: floatMove, pulseGlow;
+        animation-timing-function: linear, ease-in-out;
+        animation-fill-mode: forwards;
+        animation-iteration-count: 1, infinite;
+        will-change: transform, opacity, filter;
+        z-index: 1;
     }
 
-    /* Background gradient animation */
-    @@keyframes bgFlow {
-        0%
-
-    {
-        background-position: 0% 50%;
-    }
-
-    50% {
-        background-position: 100% 50%;
-    }
-
-    100% {
-        background-position: 0% 50%;
-    }
-
-    }
-
-    /* Music note floating animation */
     @@keyframes floatMove {
         0%
 
@@ -175,8 +181,8 @@
         opacity: 1;
     }
 
-    50% {
-        opacity: 0.8;
+    70% {
+        opacity: 1;
     }
 
     100% {
@@ -186,33 +192,106 @@
 
     }
 
-    /* Music note style */
-    .music-note {
-        position: fixed;
-        font-size: var(--note-size);
-        color: rgba(255, 122, 0, 0.6);
-        user-select: none;
-        pointer-events: none;
-        animation-name: floatMove;
-        animation-timing-function: linear;
-        animation-fill-mode: forwards;
-        animation-iteration-count : infinite;
+    @@keyframes pulseGlow {
+        0%
+
+    {
+        filter: drop-shadow(0 0 2px rgba(255, 140, 0, 0.4));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 12px rgba(255, 140, 0, 0.85));
+    }
+
+    100% {
+        filter: drop-shadow(0 0 2px rgba(255, 140, 0, 0.4));
+    }
+
     }
 </style>
 
+
+
+<script>
+    window.startMusicNotesAnimation = () => {
+
+        // Clean existing notes
+        document.querySelectorAll(".music-note").forEach(n => n.remove());
+
+        const TOTAL_NOTES = 150;
+        const activeNotes = new Set();
+
+        const noteSymbols = ["\u266A", "\u266B", "\u2669", "\u266C"];
+        const animationDurationRange = [4000, 8000];
+        const noteSizeRange = [14, 30];
+
+        function randomRange(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        function randomMovement(min, max, minAbs) {
+            let v;
+            do { v = randomRange(min, max); }
+            while (Math.abs(v) < minAbs);
+            return v;
+        }
+
+        function spawnNote() {
+            if (activeNotes.size >= TOTAL_NOTES) return;
+
+            const note = document.createElement("div");
+            note.classList.add("music-note");
+            activeNotes.add(note);
+
+            note.textContent = noteSymbols[Math.floor(Math.random() * noteSymbols.length)];
+
+            const size = randomRange(noteSizeRange[0], noteSizeRange[1]);
+            note.style.setProperty("--note-size", size + "px");
+
+            note.style.left = randomRange(0, window.innerWidth) + "px";
+            note.style.top = randomRange(0, window.innerHeight) + "px";
+
+            const moveX = randomMovement(-150, 150, 40);
+            const moveY = randomMovement(-150, 150, 40);
+
+            note.style.setProperty("--move-x", moveX + "px");
+            note.style.setProperty("--move-y", moveY + "px");
+
+            const duration = randomRange(animationDurationRange[0], animationDurationRange[1]);
+
+            const glowDelay = randomRange(0, 1500);
+
+            note.style.animationDuration = `${duration}ms, 2000ms`;
+            note.style.animationDelay = `0ms, ${glowDelay}ms`;
+
+            document.body.appendChild(note);
+
+            setTimeout(() => {
+                activeNotes.delete(note);
+                note.remove();
+                spawnNote();
+            }, duration + 50);
+        }
+
+        for (let i = 0; i < TOTAL_NOTES; i++) {
+            spawnNote();
+        }
+    }
+</script>
+
 <div class="login-page">
-    <div class="login-card" tabindex="-1">
+    <div class="login-card">
         <h1 class="hero-title">Login</h1>
-        
 
-        <h3>Enter Email</h3>
-        <input type="text" @bind-value="email" placeholder="Email" autocomplete="email" />
+        <label>Email</label>
+        <input type="text" @bind="email" placeholder="Email">
 
-        <h3>Enter Password</h3>
-        <input type="password" @bind-value="password" placeholder="Password" autocomplete="current-password" />
+        <label>Password</label>
+        <input type="password" @bind="password" placeholder="Password">
 
-        <button @onclick="login" type="submit">Login</button>
-        <button class="register-btn" @onclick="Register" type="button">Register</button>
+        <button class="login-btn" @onclick="login">Login</button>
+        <button class="register-btn" @onclick="Register">Register</button>
+
         <div class="message">@message</div>
     </div>
 </div>
@@ -234,6 +313,7 @@
     {
         TunersDB T = new TunersDB();
         Tuners tuners = await T.Login(email, password);
+
         if (tuners != null)
         {
             await MySession.SetAsync("Tuner", tuners);
@@ -241,64 +321,14 @@
         }
         else
         {
+            message = "Invalid email or password";
             email = "";
             password = "";
-            message = "The email or password you entered does not match!";
         }
     }
 
-    async Task Register()
+    void Register()
     {
         navigationManager.NavigateTo("/Register");
     }
-
-    [Inject]
-    private IJSRuntime JS { get; set; }
 }
-
-<script>
-    window.startMusicNotesAnimation = () => {
-        const noteSymbols = ["\u266A", "\u266B", "\u2669", "\u266C"];
-        const totalNotes = 150;
-        const animationDurationRange = [8000, 14000]; // ms
-        const noteSizeRange = [14, 30]; // px
-
-        function randomRange(min, max) {
-            return Math.random() * (max - min) + min;
-        }
-        
-        for (let i = 0; i < totalNotes; i++) {
-            const note = document.createElement("div");
-            note.classList.add("music-note");
-
-            // Random music note symbol
-            note.textContent = noteSymbols[Math.floor(Math.random() * noteSymbols.length)];
-
-            // Random size
-            const size = randomRange(noteSizeRange[0], noteSizeRange[1]);
-            note.style.setProperty("--note-size", size + "px");
-
-            // Random starting position anywhere on screen
-            note.style.left = randomRange(0, window.innerWidth) + "px";
-            note.style.top = randomRange(0, window.innerHeight) + "px";
-
-            // Random move distance for animation (in px), positive or negative for x and y
-            const moveX = randomRange(-100, 100);
-            const moveY = randomRange(-100, 100);
-            note.style.setProperty("--move-x", moveX + "px");
-            note.style.setProperty("--move-y", moveY + "px");
-
-            // Random animation duration and delay for natural scattered effect
-            const duration = randomRange(animationDurationRange[0], animationDurationRange[1]);
-            const delay = randomRange(0, animationDurationRange[1]);
-
-            note.style.animationDuration = duration + "ms";
-            note.style.animationDelay = delay + "ms";
-
-            // Remove note after animation ends (to avoid cluttering DOM)
-            
-
-            document.body.appendChild(note);
-        }
-    }
-</script>
