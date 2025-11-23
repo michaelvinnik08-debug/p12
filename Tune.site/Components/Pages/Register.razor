@@ -223,7 +223,7 @@
         window.musicNotes.activeNotes.clear();
 
         // Spawn initial batch
-        for(let i=0;i<TOTAL_NOTES;i++){ spawnNote(); }
+     
     }
 </script>
 
@@ -254,8 +254,22 @@
     {
         TunersDB f = new TunersDB();
 
-        if (!string.IsNullOrWhiteSpace(email))
-            message = "Registered!";
+        if (email!=null)
+        {
+            Tuners tuners =await f.Reg(username, email, password);
+            if(tuners==null)
+            {
+                message = "email already in use,try another one";
+                email = "";
+            }
+            else{
+                message = "Registered!";
+                Thread.Sleep(2000);
+                await MySession.SetAsync("Tuner", tuners);
+            navigationManager.NavigateTo("/Update");
+            }
+        }
+        
         else
             message = "The email is required!";
     }
