@@ -15,9 +15,8 @@ namespace Moduls
         public string message { get; set; }
         public int is_read { get; set; }
         public Chats() { }
-        public Chats(int id,int user1,string message, int user2)
+        public Chats(int user1,string message, int user2)
         {
-            this.id = id;
             this.user1 = user1;
             this.message = message;
             this.user2 = user2;

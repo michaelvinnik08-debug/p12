@@ -1,0 +1,377 @@
+﻿@page "/Chat"
+@using Microsoft.AspNetCore.SignalR.Client
+@using Moduls
+@using DBL
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage MySession
+@inject NavigationManager navigationManager
+@implements IAsyncDisposable
+
+<h1 style="text-align: center">@other?.username</h1>
+
+<div class="messages-container">
+    @if (messages != null && messages.Count > 0)
+    {
+        @foreach (var msg in messages)
+        {
+            <div class="message @(msg.userid == currentUser.Id ? "message-own" : "message-received")"
+                 @oncontextmenu="(e) => ShowContextMenu(e, msg)"
+                 @oncontextmenu:preventDefault="true">
+                @msg.text
+            </div>
+        }
+    }
+    else
+    {
+        <p>No messages yet</p>
+    }
+</div>
+
+@* Context Menu *@
+@if (showContextMenu && selectedMessage != null)
+{
+    <div class="context-menu" style="top: @(contextMenuY)px; left: @(contextMenuX)px;">
+        @if (selectedMessage.userid == currentUser.Id)
+        {
+            <button @onclick="DeleteMessage">🗑️ Delete Message</button>
+        }
+        <button @onclick="HideContextMenu">❌ Cancel</button>
+    </div>
+}
+
+@* Overlay to close context menu when clicking outside *@
+@if (showContextMenu)
+{
+    <div class="context-menu-overlay" @onclick="HideContextMenu" @onclick:stopPropagation="true"></div>
+}
+
+<div class="input-container">
+    <input type="text" @bind="message" @onkeydown="HandleKeyPress" placeholder="Type a message..." />
+    <button type="button" @onclick="Send">Send</button>
+</div>
+
+<style>
+    .messages-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1rem;
+        padding-bottom: 90px;
+        max-height: calc(100vh - 150px);
+        overflow-y: auto;
+    }
+
+        .messages-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+            background: #3C2E2E;
+            border-radius: 10px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+            background: #FF7A00;
+            border-radius: 10px;
+        }
+
+            .messages-container::-webkit-scrollbar-thumb:hover {
+                background: #FF9A00;
+            }
+
+    .message {
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        max-width: 70%;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+        cursor: context-menu;
+        position: relative;
+    }
+
+        .message:hover {
+            opacity: 0.9;
+        }
+
+    .message-own {
+        background-color: #FF7A00;
+        color: white;
+        margin-left: auto;
+        text-align: left;
+    }
+
+    .message-received {
+        background-color: #808080;
+        color: white;
+        margin-right: auto;
+        text-align: right;
+    }
+
+    .input-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        gap: 0.5rem;
+        padding: 1rem;
+        background-color: #3B1F1F;
+    }
+
+        .input-container input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            border: 1px solid #4F3C3C;
+            background-color: #3C2E2E;
+            color: #FFF3E2;
+            font-size: 1rem;
+        }
+
+        .input-container button {
+            padding: 0.75rem 0.75rem;
+            width: auto;
+            min-width: 60px;
+            border-radius: 6px;
+            border: none;
+            background-color: #FF7A00;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+    /* Context Menu Styles */
+    .context-menu-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 998;
+        background-color: transparent;
+    }
+
+    .context-menu {
+        position: fixed;
+        background-color: #3C2E2E;
+        border: 1px solid #4F3C3C;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 999;
+        padding: 0.5rem;
+        min-width: 150px;
+    }
+
+        .context-menu button {
+            display: block;
+            width: 100%;
+            padding: 0.6rem 1rem;
+            border: none;
+            background-color: transparent;
+            color: #FFF3E2;
+            cursor: pointer;
+            text-align: left;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+            .context-menu button:hover {
+                background-color: #4F3C3C;
+            }
+
+            .context-menu button:first-child:hover {
+                background-color: #8B0000;
+            }
+</style>
+
+@code {
+    private Chats chats = new();
+    private Tuners currentUser = new();
+    private Tuners other = new();
+    private MessagesDB messagesDB = new();
+    private TunersDB tunersDB = new();
+    private List<Messages> messages = new();
+    private string message = "";
+    private HubConnection? hubConnection;
+    private bool hubStarted = false;
+    private Chats chatResult = null;
+
+    // Context Menu variables
+    private bool showContextMenu = false;
+    private Messages? selectedMessage = null;
+    private double contextMenuX = 0;
+    private double contextMenuY = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load session info
+        var chatTemp = await MySession.GetAsync<Chats>("Chats");
+        if (chatTemp is Chats)
+        {
+            chatResult = chatTemp.Value;
+        }
+        var userResult = await MySession.GetAsync<Tuners>("Tuner");
+
+        if (!chatTemp.Success || !userResult.Success)
+        {
+            navigationManager.NavigateTo("/"); // Go back if session missing
+            return;
+        }
+
+        chats = chatTemp.Value;
+        currentUser = userResult.Value;
+
+        // Load old messages
+        messages = await messagesDB.SelectMessagesByChatId(chats.id);
+
+        // Load the other user
+        other = await tunersDB.SelectUserID(
+            chats.user1 == currentUser.Id ? chats.user2 : chats.user1
+        );
+
+        StateHasChanged();
+
+        // Setup SignalR
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(navigationManager.ToAbsoluteUri("/chatHub"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        hubConnection.On<int, int, string, DateTime>("ReceiveMessage", (chatId, userId, text, time) =>
+        {
+            if (chatId == chats.id)
+            {
+                messages.Add(new Messages
+                {
+                    chatid = chatId,
+                    userid = userId,
+                    text = text,
+                    Time = time
+                });
+                InvokeAsync(StateHasChanged);
+            }
+        });
+
+        // Listen for message deletions
+        hubConnection.On<int>("MessageDeleted", (messageId) =>
+        {
+            var msgToRemove = messages.FirstOrDefault(m => m.id == messageId);
+            if (msgToRemove != null)
+            {
+                messages.Remove(msgToRemove);
+                InvokeAsync(StateHasChanged);
+            }
+        });
+
+        try
+        {
+            await hubConnection.StartAsync();
+            await hubConnection.InvokeAsync("JoinChatGroup", chats.id);
+            Console.WriteLine("SignalR connection established.");
+            hubStarted = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.Write(ex.Message);
+        }
+    }
+
+    private async Task Send()
+    {
+        if (string.IsNullOrWhiteSpace(message))
+            return;
+
+        // Hide context menu if open
+        HideContextMenu();
+
+        try
+        {
+            // Save message to DB
+            var newMsg = await messagesDB.NewMessage(message, chats.id, currentUser.Id);
+
+            // Send via SignalR
+            if (hubConnection?.State == HubConnectionState.Connected)
+            {
+                await hubConnection.InvokeAsync(
+                    "SendMessage",
+                    chats.id,
+                    currentUser.Id,
+                    newMsg.text,
+                    newMsg.Time
+                );
+                ChatsDB chatsDB = new ChatsDB();
+                await chatsDB.UpdateAsync(message, chats);
+                message = ""; // clear input
+                await InvokeAsync(StateHasChanged);
+            }
+            else
+            {
+                Console.WriteLine("Hub connection is not connected.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error sending message: " + ex.Message);
+        }
+    }
+
+    private void ShowContextMenu(MouseEventArgs e, Messages msg)
+    {
+        selectedMessage = msg;
+        contextMenuX = e.ClientX;
+        contextMenuY = e.ClientY;
+        showContextMenu = true;
+        StateHasChanged();
+    }
+
+    private void HideContextMenu()
+    {
+        showContextMenu = false;
+        selectedMessage = null;
+        StateHasChanged();
+    }
+
+    private async Task DeleteMessage()
+    {
+        if (selectedMessage == null || hubConnection?.State != HubConnectionState.Connected)
+        {
+            HideContextMenu();
+            return;
+        }
+
+        try
+        {
+            // Send delete request via SignalR (which handles DB deletion)
+            await hubConnection.InvokeAsync("DeleteMessage", selectedMessage.id, chats.id);
+
+            // Remove from local list immediately
+            messages.Remove(selectedMessage);
+
+            HideContextMenu();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error deleting message: " + ex.Message);
+            HideContextMenu();
+        }
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await Send();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection != null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}

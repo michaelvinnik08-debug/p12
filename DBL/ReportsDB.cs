@@ -32,8 +32,8 @@ namespace DBL
         public async Task<Reports> InsertGetObjAsync(Reports R)
         {
             TunersDB s = new TunersDB();
-            List<Tuners> t = await s.SelectUserID(R.reported);
-            if (t[0].banned == 0)
+            Tuners t = await s.SelectUserID(R.reported);
+            if (t.banned == 0)
             {
                 Dictionary<string, object> fillValues = new Dictionary<string, object>()
             {
@@ -41,7 +41,7 @@ namespace DBL
                 { "reported", R.reported },
                 { "report", R.report }
             };
-                t[0].rep_amount++;
+                t.rep_amount++;
                 return (Reports)await base.InsertGetObjAsync(fillValues);
             }
             return null;

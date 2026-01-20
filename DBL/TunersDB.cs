@@ -24,11 +24,12 @@ namespace DBL
         {
             return ((List<Tuners>)await SelectAllAsync());
         }
-        public async Task<List<Tuners>> SelectUserID(int id)
+        public async Task<Tuners> SelectUserID(int id)
             {
             Dictionary<string, object> filter = new Dictionary<string, object>();
             filter.Add("id", id);
-            return  ((List<Tuners>) await SelectAllAsync());
+           List<Tuners> T= await SelectAllAsync(filter);
+            return  T[0];
         }
         public async Task<Tuners> Reg(string username,string email, string password)
         {

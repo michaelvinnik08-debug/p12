@@ -9,15 +9,23 @@ namespace UnitTest
     {
         public static async Task Main(string[] args)
         {
+            TunersDB B= new TunersDB();
+            Tuners T =await B.SelectUserID(3);
+            Console.WriteLine(T.username);
+
+           // Chats c = new Chats(1,"sup",2);
+          //  ChatsDB cd = new ChatsDB();
+          //  Chats g=await cd.InsertGetObjAsync(c);
+          //  Console.WriteLine(g.last);
           //  ReportsDB f= new ReportsDB();
           //  List<Reports> report =await f.GetAllAsync();
           //  foreach(var rep in report )
           //  {
           //      Console.WriteLine(rep.report);
            // }
-          Tuners t = new Tuners(2,"Jane Smith", "jane.smith@example.com", "securePass1");
-           TunersDB r = new TunersDB();
-            int a= await r.UpdateAsync(t, "Jane Smith", "securePass1");
+         // Tuners t = new Tuners(2,"Jane Smith", "jane.smith@example.com", "securePass1");
+         ///  TunersDB r = new TunersDB();
+         ///   int a= await r.UpdateAsync(t, "Jane Smith", "securePass1");
           //  if (s == null)
           //  {
           //     Console.WriteLine("EMAIL ALREADY IN USE");

@@ -47,6 +47,17 @@
         z-index: 0;
     }
 
+    /* Center the card */
+    .page-container {
+        position: relative;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+        z-index: 1;
+    }
+
     /* Card */
     .card {
         position: relative;
@@ -179,61 +190,121 @@
 </style>
 
 <script>
-    window.musicNotes = window.musicNotes || { activeNotes: new Set() };
+
+    // --- GLOBAL STATE (prevents duplication on page reloads) ---
+    if (!window.__musicNotesInitialized) {
+        window.__musicNotesInitialized = true;
+        window.__activeNotes = new Set();       // all active notes
+        window.__spawnTimerIds = [];            // timers for respawning notes
+    }
 
     window.startMusicNotesAnimation = () => {
+
+        // Clear existing notes (visual cleanup only — timers cleared in stop fn)
+        document.querySelectorAll(".music-note").forEach(n => n.remove());
+        window.__activeNotes.clear();
+
         const TOTAL_NOTES = 150;
-        const noteSymbols = ["\u266A","\u266B","\u2669","\u266C"];
-        const sizeRange = [14,30];
-        const durationRange = [4000,8000];
+        const noteSymbols = ["\u266A", "\u266B", "\u2669", "\u266C"];
+        const animationDurationRange = [4000, 8000];
+        const noteSizeRange = [14, 30];
 
-        function random(min,max){return Math.random()*(max-min)+min;}
-        function spawnNote(){
-            if(window.musicNotes.activeNotes.size>=TOTAL_NOTES) return;
-            const note = document.createElement("div");
-            note.classList.add("music-note");
-            window.musicNotes.activeNotes.add(note);
-
-            note.textContent = noteSymbols[Math.floor(Math.random()*noteSymbols.length)];
-            const size = random(sizeRange[0],sizeRange[1]);
-            note.style.setProperty("--note-size", size+"px");
-            note.style.left = random(0,window.innerWidth)+"px";
-            note.style.top = random(0,window.innerHeight)+"px";
-            note.style.setProperty("--move-x", random(-150,150)+"px");
-            note.style.setProperty("--move-y", random(-150,150)+"px");
-            const duration = random(durationRange[0],durationRange[1]);
-            const delay = random(0,1500);
-            note.style.animationDuration = `${duration}ms, 2000ms`;
-            note.style.animationDelay = `0ms, ${delay}ms`;
-            document.body.appendChild(note);
-            setTimeout(()=>{window.musicNotes.activeNotes.delete(note); note.remove(); spawnNote();}, duration+50);
+        function randomRange(min, max) {
+            return Math.random() * (max - min) + min;
         }
 
-        // Remove old notes on navigation
-        window.musicNotes.activeNotes.forEach(n => n.remove());
-        window.musicNotes.activeNotes.clear();
+        function randomMovement(min, max, minAbs) {
+            let v;
+            do { v = randomRange(min, max); }
+            while (Math.abs(v) < minAbs);
+            return v;
+        }
 
-        // Spawn initial batch
-        for(let i=0;i<TOTAL_NOTES;i++){ spawnNote(); }
-    }
+        // --- SPAWN A SINGLE NOTE ---
+        function spawnNote() {
+            if (window.__activeNotes.size >= TOTAL_NOTES) return;
+
+            const note = document.createElement("div");
+            note.classList.add("music-note");
+            window.__activeNotes.add(note);
+
+            note.textContent = noteSymbols[Math.floor(Math.random() * noteSymbols.length)];
+
+            const size = randomRange(noteSizeRange[0], noteSizeRange[1]);
+            note.style.setProperty("--note-size", size + "px");
+
+            note.style.left = randomRange(0, window.innerWidth) + "px";
+            note.style.top = randomRange(0, window.innerHeight) + "px";
+
+            const moveX = randomMovement(-150, 150, 40);
+            const moveY = randomMovement(-150, 150, 40);
+
+            note.style.setProperty("--move-x", moveX + "px");
+            note.style.setProperty("--move-y", moveY + "px");
+
+            const duration = randomRange(animationDurationRange[0], animationDurationRange[1]);
+            const glowDelay = randomRange(0, 1500);
+
+            note.style.animationDuration = `${duration}ms, 2000ms`;
+            note.style.animationDelay = `0ms, ${glowDelay}ms`;
+
+            document.body.appendChild(note);
+
+            const timeoutId = setTimeout(() => {
+                window.__activeNotes.delete(note);
+                note.remove();
+                spawnNote();
+            }, duration + 50);
+
+            window.__spawnTimerIds.push(timeoutId);
+        }
+
+        // Create initial set of notes
+        for (let i = 0; i < TOTAL_NOTES; i++) {
+            spawnNote();
+        }
+    };
+
+    // --- STOP & CLEAN EVERYTHING COMPLETELY ---
+    window.stopMusicNotesAnimation = () => {
+
+        // Remove note elements
+        window.__activeNotes.forEach(n => n.remove());
+        window.__activeNotes.clear();
+
+        // Clear all timers
+        for (let id of window.__spawnTimerIds) {
+            clearTimeout(id);
+        }
+
+        window.__spawnTimerIds = [];
+    };
+
+    // Stop automatically when leaving page
+    window.addEventListener("beforeunload", () => {
+        window.stopMusicNotesAnimation();
+    });
+
 </script>
 
 
 <div class="page-background"></div>
-<div class="card">
-    <h1 class="hero-title">Update</h1>
+<div class="page-container">
+    <div class="card">
+        <h1 class="hero-title">Update</h1>
 
-    <h3>Enter Username</h3>
-    <input type="text" @bind-value='username' />
+        <h3>Enter Username</h3>
+        <input type="text" @bind-value='username' />
 
-    <h3>Enter Password</h3>
-    <input type="password" @bind-value='password' />
+        <h3>Enter Password</h3>
+        <input type="password" @bind-value='password' />
 
-    <h3>Confirm Password</h3>
-    <input type="password" @bind-value='password1' />
+        <h3>Confirm Password</h3>
+        <input type="password" @bind-value='password1' />
 
-    <button @onclick="update">Update</button>
-    <div class="message">@message</div>
+        <button @onclick="update">Update</button>
+        <div class="message">@message</div>
+    </div>
 </div>
 
 
@@ -258,7 +329,7 @@
                     tuners.username = username;
                     tuners.password = password;
                     await MySession.SetAsync("Tuner",tuners);
-                    navigationManager.NavigateTo("/HI");
+                    navigationManager.NavigateTo("/Chatsss");
                 }
                 else message = "Fill all the fields";
             }

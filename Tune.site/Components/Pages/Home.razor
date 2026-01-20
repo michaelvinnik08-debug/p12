@@ -33,8 +33,8 @@
     }
 
     .login-page {
-        height: 100vh;
-        width: 100vw;
+        min-height: 100vh;
+        width: 100%;
         background: linear-gradient(135deg, var(--background1), var(--background2), var(--background3));
         background-size: 300% 300%;
         animation: bgFlow 20s ease-in-out infinite;
@@ -44,23 +44,20 @@
         position: relative;
         overflow: hidden;
         z-index: 1;
+        box-sizing: border-box;
+        padding: 2rem 1rem;
     }
 
     @@keyframes bgFlow {
-        0%
-
-    {
-        background-position: 0% 0%;
-    }
-
-    50% {
-        background-position: 100% 100%;
-    }
-
-    100% {
-        background-position: 0% 0%;
-    }
-
+        0% {
+            background-position: 0% 0%;
+        }
+        50% {
+            background-position: 100% 100%;
+        }
+        100% {
+            background-position: 0% 0%;
+        }
     }
 
     .login-card {
@@ -75,12 +72,12 @@
         text-align: center;
     }
 
-        .login-card h1 {
-            margin-bottom: 1.5rem;
-            font-size: 1.8rem;
-            color: var(--primary-color);
-            text-shadow: 0 0 12px var(--primary-color);
-        }
+    .login-card h1 {
+        margin-bottom: 1.5rem;
+        font-size: 1.8rem;
+        color: var(--primary-color);
+        text-shadow: 0 0 12px var(--primary-color);
+    }
 
     label {
         font-weight: bold;
@@ -134,10 +131,10 @@
         box-shadow: 0 0 10px var(--primary-color);
     }
 
-        .login-btn:hover {
-            background: #ff8f2d;
-            box-shadow: 0 0 20px #ff8f2d;
-        }
+    .login-btn:hover {
+        background: #ff8f2d;
+        box-shadow: 0 0 20px #ff8f2d;
+    }
 
     .register-btn {
         background: white;
@@ -146,11 +143,11 @@
         box-shadow: 0 0 10px var(--primary-color);
     }
 
-        .register-btn:hover {
-            background: var(--primary-color);
-            color: white;
-            box-shadow: 0 0 20px var(--primary-color);
-        }
+    .register-btn:hover {
+        background: var(--primary-color);
+        color: white;
+        box-shadow: 0 0 20px var(--primary-color);
+    }
 
     .message {
         color: var(--accent-color);
@@ -174,53 +171,46 @@
     }
 
     @@keyframes floatMove {
-        0%
-
-    {
-        transform: translate(0, 0) rotate(0deg);
-        opacity: 1;
-    }
-
-    70% {
-        opacity: 1;
-    }
-
-    100% {
-        transform: translate(var(--move-x), var(--move-y)) rotate(360deg);
-        opacity: 0;
-    }
-
+        0% {
+            transform: translate(0, 0) rotate(0deg);
+            opacity: 1;
+        }
+        70% {
+            opacity: 1;
+        }
+        100% {
+            transform: translate(var(--move-x), var(--move-y)) rotate(360deg);
+            opacity: 0;
+        }
     }
 
     @@keyframes pulseGlow {
-        0%
-
-    {
-        filter: drop-shadow(0 0 2px rgba(255, 140, 0, 0.4));
-    }
-
-    50% {
-        filter: drop-shadow(0 0 12px rgba(255, 140, 0, 0.85));
-    }
-
-    100% {
-        filter: drop-shadow(0 0 2px rgba(255, 140, 0, 0.4));
-    }
-
+        0% {
+            filter: drop-shadow(0 0 2px rgba(255, 140, 0, 0.4));
+        }
+        50% {
+            filter: drop-shadow(0 0 12px rgba(255, 140, 0, 0.85));
+        }
+        100% {
+            filter: drop-shadow(0 0 2px rgba(255, 140, 0, 0.4));
+        }
     }
 </style>
 
-
-
 <script>
-    window.startMusicNotesAnimation = () => {
+    // --- GLOBAL STATE (prevents duplication on page reloads) ---
+    if (!window.__musicNotesInitialized) {
+        window.__musicNotesInitialized = true;
+        window.__activeNotes = new Set();       // all active notes
+        window.__spawnTimerIds = [];            // timers for respawning notes
+    }
 
-        // Clean existing notes
+    window.startMusicNotesAnimation = () => {
+        // Clear existing notes (visual cleanup only — timers cleared in stop fn)
         document.querySelectorAll(".music-note").forEach(n => n.remove());
+        window.__activeNotes.clear();
 
         const TOTAL_NOTES = 150;
-        const activeNotes = new Set();
-
         const noteSymbols = ["\u266A", "\u266B", "\u2669", "\u266C"];
         const animationDurationRange = [4000, 8000];
         const noteSizeRange = [14, 30];
@@ -236,12 +226,13 @@
             return v;
         }
 
+        // --- SPAWN A SINGLE NOTE ---
         function spawnNote() {
-            if (activeNotes.size >= TOTAL_NOTES) return;
+            if (window.__activeNotes.size >= TOTAL_NOTES) return;
 
             const note = document.createElement("div");
             note.classList.add("music-note");
-            activeNotes.add(note);
+            window.__activeNotes.add(note);
 
             note.textContent = noteSymbols[Math.floor(Math.random() * noteSymbols.length)];
 
@@ -258,7 +249,6 @@
             note.style.setProperty("--move-y", moveY + "px");
 
             const duration = randomRange(animationDurationRange[0], animationDurationRange[1]);
-
             const glowDelay = randomRange(0, 1500);
 
             note.style.animationDuration = `${duration}ms, 2000ms`;
@@ -266,18 +256,40 @@
 
             document.body.appendChild(note);
 
-            setTimeout(() => {
-                activeNotes.delete(note);
+            const timeoutId = setTimeout(() => {
+                window.__activeNotes.delete(note);
                 note.remove();
                 spawnNote();
             }, duration + 50);
-            
+
+            window.__spawnTimerIds.push(timeoutId);
         }
 
+        // Create initial set of notes
         for (let i = 0; i < TOTAL_NOTES; i++) {
             spawnNote();
         }
-    }
+    };
+
+    // --- STOP & CLEAN EVERYTHING COMPLETELY ---
+    window.stopMusicNotesAnimation = () => {
+        // Remove note elements
+        window.__activeNotes.forEach(n => n.remove());
+        window.__activeNotes.clear();
+
+        // Clear all timers
+        for (let id of window.__spawnTimerIds) {
+            clearTimeout(id);
+        }
+
+        window.__spawnTimerIds = [];
+    };
+
+    // Stop automatically when leaving page
+    window.addEventListener("beforeunload", () => {
+        window.stopMusicNotesAnimation();
+    });
+
 </script>
 
 <div class="login-page">
@@ -298,9 +310,18 @@
 </div>
 
 @code {
+    public void Dispose()
+    {
+        JS.InvokeVoidAsync("stopMusicNotesAnimation");
+    }
+
     string email = "";
     string password = "";
     string message = "";
+    protected override Task OnInitializedAsync()
+    {
+        return base.OnInitializedAsync();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -318,7 +339,7 @@
         if (tuners != null)
         {
             await MySession.SetAsync("Tuner", tuners);
-            navigationManager.NavigateTo("/Update");
+            navigationManager.NavigateTo("/Chatsss");
         }
         else
         {

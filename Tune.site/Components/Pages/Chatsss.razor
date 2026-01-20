@@ -1,0 +1,137 @@
+﻿@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage MySession
+@inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
+@using Moduls
+@using DBL
+@inject IJSRuntime JS
+
+@page "/Chatsss"
+
+<style>
+    table {
+        width: 100%;
+    }
+    
+    table td, table th {
+        text-align: left;
+    }
+    
+    table button {
+        text-align: left;
+        width: 100%;
+    }
+    .Update-button
+    {
+        text-align:right;
+        font-weight:200;
+        font-size:1.5rem;
+    }
+</style>
+
+
+<h1>HI @name</h1> <h2 class="Update-button" @onclick="Update">Update Profile</h2>
+<div class=".table-wrapper">
+<table>
+    <thead>
+        <tr>
+                <h1 class="hero-title">Chats</h1>
+            </tr>
+    </thead>
+    <tbody>
+        @foreach (Chats c in chats)
+        {
+            <tr>
+                 <td>
+                        <button @onclick="() => Chat(c.id)">
+                        @GetOtherUserName(c)
+                        <br />
+                        @c.message
+                        </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+</div>
+
+
+
+@code {
+
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("stopMusicNotesAnimation");
+        }
+    }
+    string name = "";
+    string name2 = "";
+    string message = "";
+    List<Chats> chats = new List<Chats>();
+    Dictionary<int, string> usernames = new Dictionary<int, string>();
+    Tuners T = new Tuners();
+    ChatsDB C = new ChatsDB();
+    TunersDB U = new TunersDB();
+    Tuners tuners = new Tuners();
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await MySession.GetAsync<Tuners>("Tuner");
+
+        if (result.Success)
+        {
+            tuners = result.Value;
+            name = tuners.username;
+            var Chatss = await C.SelectChats(tuners);
+
+            if (Chatss is List<Chats>)
+            {
+                chats = (List<Chats>)Chatss;
+
+                // Load all usernames
+                foreach (var chat in chats)
+                {
+                    int otherUserId = (chat.user1 == tuners.Id) ? chat.user2 : chat.user1;
+                    if (!usernames.ContainsKey(otherUserId))
+                    {
+                        var otherUser = await U.SelectUserID(otherUserId);
+                        if (otherUser != null)
+                        {
+                            usernames[otherUserId] = otherUser.username;
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            message = "no chats yet go create new ones!";
+        }
+    }
+
+    private string GetOtherUserName(Chats chat)
+    {
+
+        int otherUserId = GetOtherUserId(chat);
+        return usernames.ContainsKey(otherUserId) ? usernames[otherUserId] : "Unknown";
+    }
+
+    private int GetOtherUserId(Chats chat)
+    {
+        return (chat.user1 == tuners.Id) ? chat.user2 : chat.user1;
+    }
+
+    async Task Chat(int id)
+    {
+
+        Chats chats = await C.SelectChatById(id);
+        MySession.SetAsync("Chats", chats);
+        navigationManager.NavigateTo("/Chat");   
+    }
+    async Task Update()
+    {
+        navigationManager.NavigateTo("/Update");
+    }
+}

@@ -1,11 +1,10 @@
 .page {
-    position: relative;
-    background: transparent;
-    overflow: hidden;
+    display: block !important;
 }
 
 main {
-    flex: 1;
+    display: block !important;
+    flex: unset !important;
 }
 
 .sidebar {
@@ -18,7 +17,7 @@ main {
     justify-content: flex-end;
     height: 3.5rem;
     display: flex;
-    align-items: center;
+    
 }
 
     .top-row ::deep a, .top-row ::deep .btn-link {
@@ -50,6 +49,7 @@ main {
     .page {
         flex-direction: row;
     }
+
 
     .sidebar {
         width: 250px;
@@ -97,4 +97,10 @@ main {
 article, main, .center-wrapper {
     position: relative;
     z-index: 1;
+}
+
+article.content {
+    max-width: none !important;
+    margin: 0 !important;
+    text-align: left !important;
 }

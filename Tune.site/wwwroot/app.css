@@ -17,11 +17,30 @@
 }
 
 /*  Animated Background */
+
 body {
     background: linear-gradient(135deg, var(--background1), var(--background2), var(--background3));
     background-size: 300% 300%;
     animation: bgFlow 18s ease-in-out infinite;
-    /* Centering magic */
+    color: var(--text-color);
+    font-family: "Inter", system-ui, sans-serif;
+    margin: 0;
+    padding: 0; /* remove 2rem padding if you want flush to edges */
+    position: relative;
+    overflow: auto; /* allow scrolling */
+}
+
+/* Remove flex from page */
+.page {
+    display: block; /* instead of flex */
+    flex-direction: unset;
+}
+
+main {
+    display: block; /* instead of flex */
+    flex: unset;
+}
+.body-align {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -34,8 +53,8 @@ body {
     position: relative;
     overflow: hidden;
 }
-
   
+
 
 /*  Hero Title */
 .hero-title {
@@ -56,7 +75,7 @@ body {
     box-shadow: var(--shadow);
     max-width: 420px;
     width: 100%;
-    text-align: center;
+    text-align: left;
     border: 1px solid rgba(255, 255, 255, 0.05);
     margin-bottom: 2rem;
     backdrop-filter: blur(6px);
@@ -69,6 +88,13 @@ h1 {
     font-size: 1.8rem;
     color: var(--primary-color);
     text-shadow: 0 0 10px rgba(255, 122, 0, 0.5);
+}
+h2 {
+    margin-bottom: 1rem;
+    font-size :1.2rem;
+    color:var(--primary-color);
+    text-shadow: 0 0 10px rgba(255, 122, 0, 0.5);
+    text-align:center;
 }
 
 h3 {
@@ -201,6 +227,72 @@ button {
     align-self: flex-start;
     border-bottom-left-radius: 2px;
 }
+.table-wrapper {
+    width: 100%;
+    max-width: 800px;
+    margin: 2rem auto;
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.05);
+    overflow-x: auto;
+}
+
+/* Table Base */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--text-color);
+    font-size: 0.95rem;
+}
+
+    /* Table Headers */
+    table thead th {
+        background: rgba(255, 122, 0, 0.15);
+        color: var(--primary-color);
+        padding: 0.85rem;
+        font-weight: 700;
+        text-align: left;
+        border-bottom: 2px solid var(--primary-color);
+        text-shadow: 0 0 8px rgba(255, 122, 0, 0.5);
+    }
+
+    /* Table Rows */
+    table tbody tr {
+        transition: var(--transition);
+        background: rgba(255,255,255,0.02);
+    }
+
+        /* Row Hover Effect */
+        table tbody tr:hover {
+            background: rgba(255, 122, 0, 0.12);
+            transform: scale(1.01);
+        }
+
+    /* Table Cells */
+    table td {
+        padding: 0.8rem;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    /* Zebra Striping */
+    table tbody tr:nth-child(even) {
+        background: rgba(255,255,255,0.04);
+    }
+
+    /* Rounded Bottom Corners */
+    table tbody tr:last-child td:first-child {
+        border-bottom-left-radius: var(--border-radius);
+    }
+
+    table tbody tr:last-child td:last-child {
+        border-bottom-right-radius: var(--border-radius);
+    }
+
+
+
 
 
 
