@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Resend" Version="0.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\DBL\DBL.csproj" />
     <ProjectReference Include="..\Moduls\Moduls.csproj" />
   </ItemGroup>

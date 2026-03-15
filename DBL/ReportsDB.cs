@@ -47,9 +47,18 @@ namespace DBL
             return null;
 
         }
+        public async Task<int> TheSolver(int Id,int solved)
+        {
+
+            Dictionary<string, object> filter = new Dictionary<string, object>();
+            Dictionary<string, object> values = new Dictionary<string, object>();
+            values.Add("banned", solved);
+            filter.Add("id", Id);
+            return await base.UpdateAsync(filter, values);
+        }
         public async Task<List<Reports>> GetAllAsync()
          {
-            string query = "SELECT * FROM project12.reports Order by reported_id";
+            string query = "SELECT * FROM project12.reports Where solved=0 Order by reported_id";
             return ((List<Reports>)await SelectAllAsync());
         }
         

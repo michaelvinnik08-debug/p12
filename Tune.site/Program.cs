@@ -1,13 +1,15 @@
 using Microsoft.AspNetCore.SignalR;
 using Tune.site.Components;
-using DBL; 
+using DBL;
+using System.Threading.Tasks;
 
 namespace Tune.site
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
+            await Resend.message(0);
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.

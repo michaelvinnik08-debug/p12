@@ -31,6 +31,21 @@ namespace DBL
            List<Tuners> T= await SelectAllAsync(filter);
             return  T[0];
         }
+        public async Task<Tuners> SelectUserEmail(string email)
+        {
+            Dictionary<string, object> filter = new Dictionary<string, object>();
+            filter.Add("email", email);
+            List<Tuners> T = await SelectAllAsync(filter);
+            return T[0];
+        }
+        public async Task<List<Tuners>> SelectUsersByName(string name)
+        {
+
+            Dictionary<string, object> filter = new Dictionary<string, object>();
+            filter.Add("name", name);
+            List<Tuners> T = await SelectAllAsync(filter);
+            return  T;
+        }
         public async Task<Tuners> Reg(string username,string email, string password)
         {
             Dictionary<string, object> filter = new Dictionary<string, object>();
@@ -63,8 +78,6 @@ namespace DBL
         }
         public async Task<int> UpdateAsync(Tuners T,string username,string password )
         {
-            
-            
                 Dictionary<string, object> filter = new Dictionary<string, object>();
                 Dictionary<string, object> values = new Dictionary<string, object>();
                 values.Add("name", username);
@@ -72,12 +85,12 @@ namespace DBL
                 filter.Add("id", T.Id.ToString());
             return await base.UpdateAsync( values,filter);
         }
-        public async Task<int> Bannedornot(int ban, Tuners T)
+        public async Task<int> Bannedornot(int ban, int Id)
         {
             Dictionary<string, object> filter = new Dictionary<string, object>();
             Dictionary<string, object> values = new Dictionary<string, object>();
             values.Add("banned", ban);
-            filter.Add("id", T.Id.ToString());
+            filter.Add("id", Id);
             return await base.UpdateAsync(filter, values); 
         }
         public async Task<Tuners> Login(string email,string password)
@@ -90,11 +103,10 @@ namespace DBL
             {
                 return null;
             }
-            if (t[0].banned==1)
-            { return null; }
             return t[0];
 
         }
+       
 
 
 

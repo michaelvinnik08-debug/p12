@@ -187,6 +187,32 @@
             filter: drop-shadow(0 0 12px rgba(255,140,0,0.85));
         }
     }
+
+    .back-button {
+        background: none;
+        border: none;
+        color: #FF7A00;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        width: 40px;
+        height: 40px;
+         top: 0;
+    }
+
+        .back-button:hover {
+            background-color: rgba(255, 122, 0, 0.1);
+            border-radius: 50%;
+            transform: scale(1.1);
+        }
+
+        .back-button:active {
+            transform: scale(0.95);
+        }
 </style>
 
 <script>
@@ -289,6 +315,9 @@
 
 
 <div class="page-background"></div>
+<button class="back-button" @onclick="GoBack">
+        ←
+    </button>
 <div class="page-container">
     <div class="card">
         <h1 class="hero-title">Update</h1>
@@ -325,7 +354,7 @@
                 if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
                 {
                     await T.UpdateAsync(tuners, username, password);
-                  
+
                     tuners.username = username;
                     tuners.password = password;
                     await MySession.SetAsync("Tuner",tuners);
@@ -342,5 +371,9 @@
     {
         if (firstRender)
             await JS.InvokeVoidAsync("startMusicNotesAnimation");
+    }
+    async Task GoBack()
+    {
+        navigationManager.NavigateTo("/Chatsss");
     }
 }

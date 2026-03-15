@@ -4,69 +4,707 @@
 @using Moduls
 @using DBL
 @inject IJSRuntime JS
-
 @page "/Chatsss"
 
-<style>
-    table {
-        width: 100%;
-    }
-    
-    table td, table th {
-        text-align: left;
-    }
-    
-    table button {
-        text-align: left;
-        width: 100%;
-    }
-    .Update-button
+<div class="chats-page">
+    <!-- Header -->
+    <div class="chats-header">
+        <h1 class="chats-title">Chats</h1>
+        <h1 class="chats-title">HI @name </h1>
+        <div class="header-actions">
+            <button class="menu-button" @onclick="ToggleMenu">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    @if (showMenu)
     {
-        text-align:right;
-        font-weight:200;
-        font-size:1.5rem;
+        <div class="context-menu" style="top: 60px; right: 10px;">
+            <button @onclick="Update">⚙️ Update Profile</button>
+            <button @onclick="Requests">📥 Requests Page</button>
+            @if (tuners.role == 1)
+            {
+                <button @onclick="GoToAdmin">👑 Admin Page</button>
+            }
+        </div>
     }
-</style>
 
+    <!-- Overlay to close menu -->
+    @if (showMenu)
+    {
+        <div class="context-menu-overlay" @onclick="HideMenu"></div>
+    }
 
-<h1>HI @name</h1> <h2 class="Update-button" @onclick="Update">Update Profile</h2>
-<div class=".table-wrapper">
-<table>
-    <thead>
-        <tr>
-                <h1 class="hero-title">Chats</h1>
-            </tr>
-    </thead>
-    <tbody>
-        @foreach (Chats c in chats)
+    <!-- Chat List -->
+    <div class="chats-container">
+        @if (chats != null && chats.Count > 0)
         {
-            <tr>
-                 <td>
-                        <button @onclick="() => Chat(c.id)">
-                        @GetOtherUserName(c)
-                        <br />
-                        @c.message
-                        </button>
-                </td>
-            </tr>
+            @foreach (Chats c in chats)
+            {
+                <div class="chat-card" @onclick="() => Chat(c.id)">
+                    <div class="chat-avatar">
+                        @GetInitials(GetOtherUserName(c))
+                    </div>
+                    <div class="chat-content">
+                        <div class="chat-header-row">
+                            <span class="chat-username">@GetOtherUserName(c)</span>
+                            <span class="chat-time">@GetTimeAgo(c.last)</span>
+                        </div>
+                        <div class="chat-message">@(string.IsNullOrEmpty(c.message) ? "No messages yet" : c.message)</div>
+                    </div>
+                </div>
+            }
         }
-    </tbody>
-</table>
+        else
+        {
+            <div class="empty-state">
+                <div class="empty-icon">💬</div>
+                <p>No chats yet</p>
+                <p class="empty-subtitle">Start a conversation!</p>
+            </div>
+        }
+    </div>
+
+    @* ==================== ADDED: Right-side Search Panel + Tab Button ==================== *@
+
+    <!-- Dim overlay -->
+    <div class="search-panel-overlay @(showSearch ? "search-panel-visible" : "")" @onclick="HideSearch"></div>
+
+    <!-- Tab button fixed to right edge, vertically centered -->
+    <button class="search-tab-btn @(showSearch ? "search-open" : "")" @onclick="ToggleSearch" title="Find Users">
+        <!-- Arrow SVG: points LEFT (toward center) when closed, RIGHT when open -->
+        <svg viewBox="0 0 12 24" xmlns="http://www.w3.org/2000/svg" width="12" height="24">
+            <polyline points="9,3 3,12 9,21"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linejoin="round"
+                      stroke-linecap="round" />
+        </svg>
+    </button>
+
+    <!-- Sliding panel from right, covers 50% of screen width -->
+    <div class="search-panel @(showSearch ? "search-panel-open" : "")">
+        <div class="search-panel-inner">
+            <div class="search-panel-header">
+                <span class="search-panel-title">🔍 Find Users</span>           
+            </div>
+
+            <div class="search-bar-row">
+                <input class="search-input"
+                       type="text"
+                       placeholder="Type a username..."
+                       @bind-value="searchQuery"
+                       @bind:event="oninput"
+                       @onkeydown="OnSearchKeyDown" />
+                <button class="search-btn" @onclick="() => SearchUsers(searchQuery)">Search</button>
+            </div>
+
+            <div class="search-results">
+                @if (isSearching)
+                {
+                    <div class="search-status">Searching...</div>
+                }
+                else if (searchResults != null && searchResults.Count == 0 && hasSearched)
+                {
+                    <div class="search-status">No users found.</div>
+                }
+                else if (searchResults != null)
+                {
+                    @foreach (var user in searchResults)
+                    {
+                        <div class="search-result-card">
+                            <div class="search-avatar">@GetInitials(user.username)</div>
+                            <div class="search-user-info">
+                                <span class="search-username">@user.username</span>
+                            </div>
+                            <button class="send-request-btn" @onclick="() => ToProfile(user)">
+                                📮 Request
+                            </button>
+                        </div>
+                    }
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(requestFeedback))
+            {
+                <div class="request-feedback @(requestSuccess ? "feedback-success" : "feedback-error")">
+                    @requestFeedback
+                </div>
+            }
+        </div>
+    </div>
+
+    @* ==================== END ADDED ==================== *@
 </div>
 
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
+    .chats-page {
+        min-height: 100vh;
+        background-color: #3B1F1F;
+        color: #FFF3E2;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
 
-@code {
+    .chats-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 1rem;
+        background-color: #2D1616;
+        border-bottom: 2px solid #FF7A00;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
 
+    .chats-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #FF7A00;
+        margin: 0;
+    }
 
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await JS.InvokeVoidAsync("stopMusicNotesAnimation");
+    .menu-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 0.5rem;
+        transition: transform 0.2s;
+    }
+
+        .menu-button:hover {
+            transform: scale(1.1);
+        }
+
+        .menu-button .dot {
+            width: 5px;
+            height: 5px;
+            background-color: #FF7A00;
+            border-radius: 50%;
+        }
+
+    .context-menu-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 998;
+        background-color: transparent;
+    }
+
+    .context-menu {
+        position: fixed;
+        background-color: #3C2E2E;
+        border: 1px solid #4F3C3C;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 999;
+        padding: 0.5rem;
+        min-width: 180px;
+        animation: menuSlideIn 0.2s ease-out;
+    }
+
+    @@keyframes menuSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
     }
+
+    .context-menu button {
+        display: block;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: none;
+        background-color: transparent;
+        color: #FFF3E2;
+        cursor: pointer;
+        text-align: left;
+        border-radius: 4px;
+        font-size: 0.95rem;
+        transition: background-color 0.2s;
+    }
+
+        .context-menu button:hover {
+            background-color: #4F3C3C;
+        }
+
+    .chats-container {
+        padding: 1rem;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .chat-card {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem;
+        background-color: #3C2E2E;
+        border-radius: 12px;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        animation: cardFadeIn 0.4s ease-out;
+    }
+
+    @@keyframes cardFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .chat-card:hover {
+        background-color: #4A3535;
+        border-color: #FF7A00;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255,122,0,0.2);
+    }
+
+    .chat-card:active {
+        transform: translateY(0);
+    }
+
+    .chat-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #FF7A00, #FF9A00);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: white;
+        flex-shrink: 0;
+        text-transform: uppercase;
+    }
+
+    .chat-content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .chat-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .chat-username {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #FFF3E2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .chat-time {
+        font-size: 0.85rem;
+        color: #FF7A00;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .chat-message {
+        font-size: 0.95rem;
+        color: #B8A89A;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #B8A89A;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-subtitle {
+        font-size: 1rem;
+        opacity: 0.7;
+    }
+
+    @@media (max-width: 768px) {
+        .chats-header {
+            padding: 1rem;
+        }
+
+        .chats-title {
+            font-size: 1.5rem;
+        }
+
+        .chat-card {
+            padding: 0.75rem;
+        }
+
+        .chat-avatar {
+            width: 45px;
+            height: 45px;
+            font-size: 1rem;
+        }
+
+        .chat-username {
+            font-size: 1rem;
+        }
+
+        .chat-message {
+            font-size: 0.9rem;
+        }
+    }
+
+    /* ==================== ADDED: Right-side Search Panel Styles ==================== */
+
+    /* Dim overlay */
+    .search-panel-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0,0,0,0);
+        z-index: 1098;
+        pointer-events: none;
+        transition: background-color 0.35s ease;
+    }
+
+        .search-panel-overlay.search-panel-visible {
+            background-color: rgba(0,0,0,0.45);
+            pointer-events: all;
+        }
+
+    /* Tab button — fixed to right edge, vertically centered */
+    .search-tab-btn {
+        position: fixed;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1100;
+        background: linear-gradient(180deg, #FF7A00 0%, #1a0a00 100%);
+        border: 2px solid #FF7A00;
+        border-right: none;
+        border-radius: 10px 0 0 10px;
+        color: #FFF3E2;
+        cursor: pointer;
+        width: 28px;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        box-shadow: -3px 0 12px rgba(255,122,0,0.35);
+        transition: width 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .search-tab-btn:hover {
+            width: 34px;
+            box-shadow: -4px 0 18px rgba(255,122,0,0.55);
+        }
+
+        /* Arrow flips horizontally when panel is open */
+        .search-tab-btn svg {
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .search-tab-btn.search-open svg {
+            transform: scaleX(-1);
+        }
+
+    /* Search panel — slides in from the right, 50% wide, full height */
+    .search-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 50%;
+        height: 100vh;
+        background-color: #2D1616;
+        border-left: 2px solid #FF7A00;
+        z-index: 1099;
+        transform: translateX(100%);
+        transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+        box-shadow: -6px 0 30px rgba(255,122,0,0.2);
+        overflow: hidden;
+    }
+
+        .search-panel.search-panel-open {
+            transform: translateX(0);
+        }
+
+    .search-panel-inner {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 1.5rem 1.25rem 1rem;
+        gap: 1rem;
+        overflow: hidden;
+    }
+
+    .search-panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .search-panel-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #FF7A00;
+    }
+
+    .search-close-btn {
+        background: none;
+        border: none;
+        color: #B8A89A;
+        font-size: 1.1rem;
+        cursor: pointer;
+        padding: 0.3rem 0.5rem;
+        border-radius: 6px;
+        transition: color 0.2s, background-color 0.2s;
+    }
+
+        .search-close-btn:hover {
+            color: #FF7A00;
+            background-color: rgba(255,122,0,0.1);
+        }
+
+    .search-bar-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        flex-shrink: 0;
+    }
+
+    .search-input {
+        width: 100%;
+        background-color: #3C2E2E;
+        border: 1.5px solid #4F3C3C;
+        border-radius: 8px;
+        color: #FFF3E2;
+        font-size: 0.95rem;
+        padding: 0.65rem 0.9rem;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+        .search-input::placeholder {
+            color: #7a6060;
+        }
+
+        .search-input:focus {
+            border-color: #FF7A00;
+            box-shadow: 0 0 0 2px rgba(255,122,0,0.18);
+        }
+
+    .search-btn {
+        width: 100%;
+        background: linear-gradient(135deg, #FF7A00, #cc6200);
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 0.95rem;
+        font-weight: 600;
+        padding: 0.65rem 1.1rem;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+        .search-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 3px 10px rgba(255,122,0,0.4);
+        }
+
+        .search-btn:active {
+           transform: scale(0.97); 
+        }
+
+    .search-results {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+        .search-results::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .search-results::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .search-results::-webkit-scrollbar-thumb {
+            background: #FF7A00;
+            border-radius: 4px;
+        }
+
+    .search-status {
+        text-align: center;
+        color: #B8A89A;
+        font-size: 0.95rem;
+        padding: 1.5rem 0;
+    }
+
+    .search-result-card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.75rem 0.9rem;
+        background-color: #3C2E2E;
+        border-radius: 10px;
+        border: 1.5px solid transparent;
+        transition: border-color 0.2s, background-color 0.2s;
+        animation: cardFadeIn 0.3s ease-out;
+    }
+
+        .search-result-card:hover {
+            background-color: #4A3535;
+            border-color: #FF7A00;
+        }
+
+    .search-result-top {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .search-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #FF7A00, #FF9A00);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+        font-weight: bold;
+        color: white;
+        flex-shrink: 0;
+        text-transform: uppercase;
+    }
+
+    .search-user-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .search-username {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #FFF3E2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+    }
+
+    .send-request-btn {
+        width: 100%;
+        background: transparent;
+        border: 1.5px solid #FF7A00;
+        border-radius: 7px;
+        color: #FF7A00;
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 0.4rem 0;
+        cursor: pointer;
+        transition: background-color 0.2s, color 0.2s, transform 0.2s;
+    }
+
+        .send-request-btn:hover {
+            background-color: #FF7A00;
+            color: #1a0a00;
+            transform: scale(1.02);
+        }
+
+        .send-request-btn:active {
+            transform: scale(0.97);
+        }
+
+    .request-feedback {
+        border-radius: 8px;
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-align: center;
+        flex-shrink: 0;
+        animation: menuSlideIn 0.25s ease-out;
+    }
+
+    .feedback-success {
+        background-color: rgba(80,200,80,0.15);
+        color: #7ecb7e;
+        border: 1px solid #4a9e4a;
+    }
+
+    .feedback-error {
+        background-color: rgba(200,60,60,0.15);
+        color: #e07878;
+        border: 1px solid #9e4a4a;
+    }
+
+    @@media (max-width: 600px) {
+        .search-panel {
+            width: 85%;
+        }
+    }
+
+    /* ==================== END ADDED ==================== */
+</style>
+
+@code {
+        // Menu state
+    private bool showMenu = false;
+
     string name = "";
     string name2 = "";
     string message = "";
@@ -76,44 +714,54 @@
     ChatsDB C = new ChatsDB();
     TunersDB U = new TunersDB();
     Tuners tuners = new Tuners();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("stopMusicNotesAnimation");
+        }
+
+    }
+
     protected override async Task OnInitializedAsync()
     {
-        var result = await MySession.GetAsync<Tuners>("Tuner");
-
-        if (result.Success)
+        try
         {
-            tuners = result.Value;
-            name = tuners.username;
-            var Chatss = await C.SelectChats(tuners);
-
-            if (Chatss is List<Chats>)
+            var result = await MySession.GetAsync<Tuners>("Tuner");
+            if (result.Success)
             {
-                chats = (List<Chats>)Chatss;
+                tuners = result.Value;
+                name = tuners.username;
 
-                // Load all usernames
-                foreach (var chat in chats)
+                var Chatss = await C.SelectChats(tuners);
+                if (Chatss is List<Chats>)
                 {
-                    int otherUserId = (chat.user1 == tuners.Id) ? chat.user2 : chat.user1;
-                    if (!usernames.ContainsKey(otherUserId))
+                    chats = (List<Chats>)Chatss;
+                    chats = chats.OrderByDescending(c => c.last).ToList();
+
+                    foreach (var chat in chats)
                     {
-                        var otherUser = await U.SelectUserID(otherUserId);
-                        if (otherUser != null)
+                        int otherUserId = (chat.user1 == tuners.Id) ? chat.user2 : chat.user1;
+                        if (!usernames.ContainsKey(otherUserId))
                         {
-                            usernames[otherUserId] = otherUser.username;
+                            var otherUser = await U.SelectUserID(otherUserId);
+                            if (otherUser != null)
+                                usernames[otherUserId] = otherUser.username;
                         }
                     }
                 }
             }
         }
-        else
+        catch (Exception e)
         {
-            message = "no chats yet go create new ones!";
+            Console.WriteLine(e.Message);
+            navigationManager.NavigateTo("/");
         }
     }
 
     private string GetOtherUserName(Chats chat)
     {
-
         int otherUserId = GetOtherUserId(chat);
         return usernames.ContainsKey(otherUserId) ? usernames[otherUserId] : "Unknown";
     }
@@ -123,15 +771,115 @@
         return (chat.user1 == tuners.Id) ? chat.user2 : chat.user1;
     }
 
+    private string GetInitials(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username)) return "?";
+        var parts = username.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2) return $"{parts[0][0]}{parts[1][0]}";
+        return username.Length >= 2 ? username.Substring(0, 2) : username.Substring(0, 1);
+    }
+
+    private string GetTimeAgo(DateTime messageTime)
+    {
+        if (messageTime == DateTime.MinValue) return "";
+        TimeSpan ago = DateTime.Now - messageTime;
+        if (ago.TotalMinutes < 1) return "Now";
+        if (ago.TotalMinutes < 60) return $"{(int)ago.TotalMinutes}m";
+        if (ago.TotalHours < 24) return $"{(int)ago.TotalHours}h";
+        return messageTime.ToString("MMM d");
+    }
+
+    private void ToggleMenu()
+    {
+        showMenu = !showMenu;
+        StateHasChanged();
+    }
+
+    private void HideMenu()
+    {
+        showMenu = false;
+        StateHasChanged();
+    }
+
     async Task Chat(int id)
     {
-
+        HideMenu();
         Chats chats = await C.SelectChatById(id);
         MySession.SetAsync("Chats", chats);
-        navigationManager.NavigateTo("/Chat");   
+        navigationManager.NavigateTo("/Chat");
     }
+
     async Task Update()
     {
+        HideMenu();
         navigationManager.NavigateTo("/Update");
     }
+
+    async Task Requests()
+    {
+        HideMenu();
+        navigationManager.NavigateTo("/Requests");
+    }
+
+    async Task GoToAdmin()
+    {
+        HideMenu();
+        navigationManager.NavigateTo("/Admin");
+    }
+
+    // ==================== ADDED: Search Panel State & Logic ====================
+
+    private bool showSearch = false;
+    private string searchQuery = "";
+    private List<Tuners> searchResults = null;
+    private bool isSearching = false;
+    private bool hasSearched = false;
+    private string requestFeedback = "";
+    private bool requestSuccess = false;
+
+    private void ToggleSearch()
+    {
+        showSearch = !showSearch;
+        if (showSearch)
+        {
+            showMenu = false;
+            requestFeedback = "";
+            searchResults = null;
+            hasSearched = false;
+        }
+        StateHasChanged();
+    }
+
+    private void HideSearch()
+    {
+        showSearch = false;
+        StateHasChanged();
+    }
+
+    private async Task OnSearchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SearchUsers(searchQuery);
+    }
+
+    // ADDED: Stub — Add your search DB logic here
+    private async Task SearchUsers(string name)
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery)) return;
+        isSearching = true;
+        hasSearched = true;
+        requestFeedback = "";
+        StateHasChanged();
+        searchResults = await U.SelectUsersByName(name.Trim());
+        isSearching = false;
+        StateHasChanged();
+    }
+
+    
+    private async Task ToProfile(Tuners targetUser)
+    {
+        await MySession.SetAsync("Other",targetUser);
+        navigationManager.NavigateTo("/Profile"); 
+    }
+
+    // ==================== END ADDED ====================
 }

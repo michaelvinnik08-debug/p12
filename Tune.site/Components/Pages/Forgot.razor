@@ -1,0 +1,36 @@
+﻿@inject IJSRuntime JS
+@page "/Forgot"
+
+@if (!sent)
+{
+    <h1 class="hero-title">Forgot Password</h1>
+<label>Email</label>
+<input type="text" @bind-value="email" placeholder="Email" />
+<button @onclick="SendEmail">Send email</button>
+}
+@if(sent)
+{
+    <h1>HI</h1>
+}
+@code {
+    bool sent = false;
+    int confnum = 0;
+    string email = "";
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("stopMusicNotesAnimation");
+        }
+    }
+    public async Task SendEmail()
+    {
+        Random Rnd = new Random();
+        confnum = Rnd.Next(10, 100);
+        await Resend.message( confnum);
+        sent = true;
+       StateHasChanged();
+
+    }
+
+}

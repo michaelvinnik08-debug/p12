@@ -7,7 +7,6 @@ using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-///לשאול לגבי הטבלה
 namespace DBL
 {
     public class ChatsDB:BaseDB<Chats>
@@ -22,8 +21,8 @@ namespace DBL
         }
         public async Task<Chats> InsertGetObjAsync(Chats c)
         {
-            List <Chats> chat= await SelectChatByUserId(c.user1, c.user2);
-            if (chat[0] == null)
+           Chats chat= await SelectChatByUserId(c.user1, c.user2);
+            if (chat == null)
             {
                 Dictionary<string, object> fillValues = new Dictionary<string, object>()
             {
@@ -33,7 +32,7 @@ namespace DBL
             };
                 return (Chats)await base.InsertGetObjAsync(fillValues);
             }
-            return chat[0];
+            return chat ;
         }
         protected override async Task<Chats> CreateModelAsync(object[] row)
         {
@@ -46,11 +45,14 @@ namespace DBL
             c.user2 = int.Parse(row[5].ToString());
             return  c;
         }
-        public  async Task<int> UpdateAsync(string message,Chats c)
+        public  async Task<int> UpdateAsync(string message,DateTime Time,Chats c)
         {
             Dictionary<string, object> filter = new Dictionary<string, object>();
-            Dictionary<string, object> values = new Dictionary<string, object>();
-            values.Add("last_message",message);
+            Dictionary<string, object> values = new Dictionary<string, object>()
+            {
+                { "last_message",message },
+                { "last_message_time", Time },
+            };
             filter.Add("id", c.id.ToString());
             return await base.UpdateAsync( values,filter);
         }
@@ -66,10 +68,13 @@ namespace DBL
             string query = $@"SELECT * FROM project12.chats WHERE {T.Id} =user1_id || {T.Id} =user2_id Order by last_message_time";
             return ((List<Chats>)await SelectAllAsync(query));
         }
-        public async Task<List<Chats>> SelectChatByUserId(int id,int id2)
+        public async Task<Chats> SelectChatByUserId(int id,int id2)
         {
             string query = $@"SELECT * FROM project12.chats WHERE ({id} =user1_id && {id2} = user2_id) || ({id2} =user1_id && {id} =user2_id)  Order by last_message_time ";
-            return   ((List<Chats>)await SelectAllAsync(query));
+            List<Chats> C=  ((List<Chats>)await SelectAllAsync(query));
+            if (C.Count==1)
+                return C[0];
+             return null;
         }
         public async Task<Chats> SelectChatById(int id)
         {
@@ -81,6 +86,7 @@ namespace DBL
            List<Chats> c= (List<Chats>)await SelectAllAsync(filter);
             return c[0];
         }
+       
 
 
     }

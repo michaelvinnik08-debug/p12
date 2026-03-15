@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Moduls
 {
-    public class Matches
+    public class Requests
     {
         public int id { get; set; }
         public int invited { get; set; }
@@ -14,8 +14,8 @@ namespace Moduls
         public int accapted { get; set; }
         public int denied { get; set; }
         public DateTime matched { get; set; }
-        public Matches() {}
-        public Matches(int id, int inviter, int invited, int accapted, int denied,DateTime matched)
+        public Requests() {}
+        public Requests(int id, int inviter, int invited, int accapted, int denied,DateTime matched)
         {
             this.id = id;
             this.inviter = inviter;

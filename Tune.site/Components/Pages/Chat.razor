@@ -7,18 +7,44 @@
 @inject NavigationManager navigationManager
 @implements IAsyncDisposable
 
-<h1 style="text-align: center">@other?.username</h1>
+<div class="chat-header">
+    <button class="back-button" @onclick="GoBack">
+        ←
+    </button>
+    <h1 class="chat-username">@other?.username</h1>
+    <div class="spacer"></div>
+</div>
 
 <div class="messages-container">
     @if (messages != null && messages.Count > 0)
     {
         @foreach (var msg in messages)
         {
-            <div class="message @(msg.userid == currentUser.Id ? "message-own" : "message-received")"
-                 @oncontextmenu="(e) => ShowContextMenu(e, msg)"
-                 @oncontextmenu:preventDefault="true">
-                @msg.text
-            </div>
+            @if (isEditing && selectedMessage?.id == msg.id)
+            {
+                <!-- Editing Mode -->
+                <div class="message message-own editing">
+                    <input type="text"
+                           @bind="editingText"
+                           @bind:event="oninput"
+                           @onkeydown="HandleEditKeyPress"
+                           class="edit-input"
+                           autofocus />
+                    <div class="edit-buttons">
+                        <button @onclick="SaveEdit" class="save-btn">✓</button>
+                        <button @onclick="CancelEditing" class="cancel-btn">✗</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- Normal Message Display -->
+                <div class="message @(msg.userid == currentUser.Id ? "message-own" : "message-received")"
+                     @oncontextmenu="(e) => ShowContextMenu(e, msg)"
+                     @oncontextmenu:preventDefault="true">
+                    @msg.text
+                </div>
+            }
         }
     }
     else
@@ -30,15 +56,19 @@
 @* Context Menu *@
 @if (showContextMenu && selectedMessage != null)
 {
-    <div class="context-menu" style="top: @(contextMenuY)px; left: @(contextMenuX)px;">
+    <div class="context-menu"
+         style="--menu-x: @(contextMenuX)px; top: @(contextMenuY)px; left: @(contextMenuX)px;">
         @if (selectedMessage.userid == currentUser.Id)
         {
             <button @onclick="DeleteMessage">🗑️ Delete Message</button>
+            @if ((DateTime.Now - selectedMessage.Time).TotalMinutes <= 15)
+            {
+                <button @onclick="Update">✏️ Edit Message</button>
+            }
         }
         <button @onclick="HideContextMenu">❌ Cancel</button>
     </div>
 }
-
 @* Overlay to close context menu when clicking outside *@
 @if (showContextMenu)
 {
@@ -140,6 +170,72 @@
             font-size: 0.9rem;
         }
 
+    /* UPDATED EDITING STYLES */
+    .message.editing {
+        background-color: #CC6200; /* Darker orange */
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+    }
+
+    .edit-input {
+        flex: 1;
+        padding: 0.5rem 0.75rem;
+        border: 2px solid #FF7A00;
+        border-radius: 6px;
+        background-color: #3C2E2E;
+        color: #FFF3E2;
+        font-size: 1rem;
+        font-family: inherit;
+    }
+
+        .edit-input:focus {
+            outline: none;
+            border-color: #FFA500;
+            background-color: #4A3535;
+        }
+
+    .edit-buttons {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+        .edit-buttons button {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+    .save-btn {
+        background-color: #FF7A00;
+        color: white;
+    }
+
+        .save-btn:hover {
+            background-color: #FF9A00;
+            transform: scale(1.05);
+        }
+
+    .cancel-btn {
+        background-color: #FF7A00;
+        color: black;
+    }
+
+        .cancel-btn:hover {
+            background-color: #FF9A00;
+            transform: scale(1.05);
+        }
+
     /* Context Menu Styles */
     .context-menu-overlay {
         position: fixed;
@@ -160,7 +256,14 @@
         z-index: 999;
         padding: 0.5rem;
         min-width: 150px;
+        max-width: calc(100vw - 20px);
+        right: auto;
+        bottom: auto;
     }
+
+        .context-menu[style*="left"] {
+            left: clamp(10px, var(--menu-x), calc(100vw - 160px)) !important;
+        }
 
         .context-menu button {
             display: block;
@@ -183,6 +286,55 @@
             .context-menu button:first-child:hover {
                 background-color: #8B0000;
             }
+
+    .chat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        background-color: #2D1616;
+        border-bottom: 2px solid #FF7A00;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .back-button {
+        background: none;
+        border: none;
+        color: #FF7A00;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        width: 40px;
+        height: 40px;
+    }
+
+        .back-button:hover {
+            background-color: rgba(255, 122, 0, 0.1);
+            border-radius: 50%;
+            transform: scale(1.1);
+        }
+
+        .back-button:active {
+            transform: scale(0.95);
+        }
+
+    .chat-username {
+        flex: 1;
+        text-align: center;
+        margin: 0;
+        font-size: 1.5rem;
+        color: #FFF3E2;
+    }
+
+    .spacer {
+        width: 40px; /* Same as back-button width for centering */
+    }
 </style>
 
 @code {
@@ -203,35 +355,56 @@
     private double contextMenuX = 0;
     private double contextMenuY = 0;
 
+    private bool isEditing = false;
+    private string editingText = "";
+
     protected override async Task OnInitializedAsync()
     {
         // Load session info
-        var chatTemp = await MySession.GetAsync<Chats>("Chats");
-        if (chatTemp is Chats)
+        try
         {
-            chatResult = chatTemp.Value;
-        }
-        var userResult = await MySession.GetAsync<Tuners>("Tuner");
 
-        if (!chatTemp.Success || !userResult.Success)
+            var userResult = await MySession.GetAsync<Tuners>("Tuner");
+        }
+        catch (Exception e)
         {
-            navigationManager.NavigateTo("/"); // Go back if session missing
-            return;
+            Console.WriteLine(e.Message);
+            navigationManager.NavigateTo("/");
+
         }
+        try
+        {
+            var userResult1 = await MySession.GetAsync<Tuners>("Tuner");
+            var chatTemp = await MySession.GetAsync<Chats>("Chats");
 
-        chats = chatTemp.Value;
-        currentUser = userResult.Value;
+            if (!chatTemp.Success || !userResult1.Success)
+            {
 
-        // Load old messages
-        messages = await messagesDB.SelectMessagesByChatId(chats.id);
+                if (chatTemp is Chats)
+                {
+                    chatResult = chatTemp.Value;
+                }
+                navigationManager.NavigateTo("/Chatsss"); // Go back if session missing
+                return;
+            }
 
-        // Load the other user
-        other = await tunersDB.SelectUserID(
-            chats.user1 == currentUser.Id ? chats.user2 : chats.user1
-        );
+            chats = chatTemp.Value;
+            currentUser = userResult1.Value;
 
-        StateHasChanged();
+            // Load old messages
+            messages = await messagesDB.SelectMessagesByChatId(chats.id);
 
+            // Load the other user
+            other = await tunersDB.SelectUserID(
+                chats.user1 == currentUser.Id ? chats.user2 : chats.user1
+            );
+
+            StateHasChanged();
+        }
+        catch(Exception e)
+        {
+            navigationManager.NavigateTo("/Chatsss");
+        }
         // Setup SignalR
         hubConnection = new HubConnectionBuilder()
             .WithUrl(navigationManager.ToAbsoluteUri("/chatHub"))
@@ -252,14 +425,36 @@
                 InvokeAsync(StateHasChanged);
             }
         });
+        hubConnection.On<int, string, string>("MessageUpdated", (messageId, newText, newLastMessage) =>
+         {
+             var msgToUpdate = messages.FirstOrDefault(m => m.id == messageId);
+             if (msgToUpdate != null)
+             {
+                 msgToUpdate.text = newText;
+
+                 // Update chat preview if this was the last message
+                 if (!string.IsNullOrEmpty(newLastMessage))
+                 {
+                     chats.message = newLastMessage;
+                 }
+
+                 InvokeAsync(StateHasChanged);
+             }
+         });
+
 
         // Listen for message deletions
-        hubConnection.On<int>("MessageDeleted", (messageId) =>
+        hubConnection.On<int, string, DateTime>("MessageDeleted", (messageId, newLastMessage, newLastTime) =>
         {
             var msgToRemove = messages.FirstOrDefault(m => m.id == messageId);
             if (msgToRemove != null)
             {
                 messages.Remove(msgToRemove);
+
+                // Update the chat's last message
+                chats.message = newLastMessage;
+                chats.last = newLastTime;
+
                 InvokeAsync(StateHasChanged);
             }
         });
@@ -302,7 +497,7 @@
                     newMsg.Time
                 );
                 ChatsDB chatsDB = new ChatsDB();
-                await chatsDB.UpdateAsync(message, chats);
+                await chatsDB.UpdateAsync(message,newMsg.Time, chats);
                 message = ""; // clear input
                 await InvokeAsync(StateHasChanged);
             }
@@ -332,6 +527,101 @@
         selectedMessage = null;
         StateHasChanged();
     }
+    private void StartEditing()
+    {
+        if (selectedMessage == null)
+        {
+            HideContextMenu();
+            return;
+        }
+
+        isEditing = true;
+        editingText = selectedMessage.text;
+        HideContextMenu();
+        StateHasChanged();
+    }
+
+    private void CancelEditing()
+    {
+        isEditing = false;
+        editingText = "";
+        selectedMessage = null;
+        StateHasChanged();
+    }
+
+    private async Task SaveEdit()
+    {
+        if (selectedMessage == null ||
+            hubConnection?.State != HubConnectionState.Connected ||
+            string.IsNullOrWhiteSpace(editingText))
+        {
+            CancelEditing();
+            return;
+        }
+
+        try
+        {
+            // Check if this is the last message
+            bool isLastMessage = chats.message == selectedMessage.text;
+
+            // Send update via SignalR
+            await hubConnection.InvokeAsync("UpdateMessage",
+                selectedMessage.id,
+                chats.id,
+                editingText.Trim());
+
+            // Update locally
+            selectedMessage.text = editingText.Trim();
+
+            // Update chat preview if it was the last message
+            if (isLastMessage)
+            {
+                ChatsDB chatsDB = new ChatsDB();
+                await chatsDB.UpdateAsync(editingText.Trim(), selectedMessage.Time, chats);
+                chats.message = editingText.Trim();
+            }
+
+            CancelEditing();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error updating message: " + ex.Message);
+            CancelEditing();
+        }
+    }
+    private async Task HandleEditKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SaveEdit();
+        }
+        else if (e.Key == "Escape")
+        {
+            CancelEditing();
+        }
+    }
+
+    private void Update()
+    {
+        if (selectedMessage == null)
+        {
+            return;
+        }
+
+        // Store the selected message before hiding menu
+        var msgToEdit = selectedMessage;
+
+        // Hide context menu first
+        HideContextMenu();
+
+        // Then start editing
+        selectedMessage = msgToEdit;
+        isEditing = true;
+        editingText = msgToEdit.text;
+
+        StateHasChanged();
+    }
 
     private async Task DeleteMessage()
     {
@@ -343,11 +633,37 @@
 
         try
         {
+            // Check if this is the last message in the chat
+            bool isLastMessage = chats.message == selectedMessage.text;
+
             // Send delete request via SignalR (which handles DB deletion)
             await hubConnection.InvokeAsync("DeleteMessage", selectedMessage.id, chats.id);
 
             // Remove from local list immediately
             messages.Remove(selectedMessage);
+
+            // If we deleted the last message, update the chat with the new last message
+            if (isLastMessage)
+            {
+                ChatsDB chatsDB = new ChatsDB();
+                if (messages.Count > 0)
+                {
+                    // Get the newest remaining message
+                    var newLastMessage = messages.OrderByDescending(m => m.Time).FirstOrDefault();
+                    if (newLastMessage != null)
+                    {
+                        await chatsDB.UpdateAsync(newLastMessage.text,newLastMessage.Time, chats);
+                        chats.message = newLastMessage.text;
+                        chats.last = newLastMessage.Time;
+                    }
+                }
+                else
+                {
+                    // No messages left, clear the last message
+                    await chatsDB.UpdateAsync("",DateTime.MinValue, chats);
+                    chats.message = "";
+                }
+            }
 
             HideContextMenu();
             await InvokeAsync(StateHasChanged);
@@ -373,5 +689,10 @@
         {
             await hubConnection.DisposeAsync();
         }
+    }
+   async void GoBack()
+    {
+        await MySession.DeleteAsync("Chats");
+        navigationManager.NavigateTo("/Chatsss");
     }
 }

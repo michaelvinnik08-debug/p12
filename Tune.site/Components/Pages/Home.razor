@@ -1,4 +1,6 @@
-﻿@page "/"
+﻿
+
+@page "/"
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject ProtectedSessionStorage MySession
 @inject NavigationManager navigationManager
@@ -37,7 +39,7 @@
         width: 100%;
         background: linear-gradient(135deg, var(--background1), var(--background2), var(--background3));
         background-size: 300% 300%;
-        animation: bgFlow 20s ease-in-out infinite;
+        animation: bgFlow 10s ease-in-out infinite;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -169,9 +171,10 @@
         will-change: transform, opacity, filter;
         z-index: 1;
     }
-
+    /*transform lets you modify an element by moving it ,rotating it*/
     @@keyframes floatMove {
         0% {
+            
             transform: translate(0, 0) rotate(0deg);
             opacity: 1;
         }
@@ -302,14 +305,17 @@
         <label>Password</label>
         <input type="password" @bind="password" placeholder="Password">
 
-        <button class="login-btn" @onclick="login">Login</button>
+        <button class="login-btn" @onclick="Login">Login</button>
         <button class="register-btn" @onclick="Register">Register</button>
-
+        <button  @onclick="ForgotPassword">Forgot Password</button>
         <div class="message">@message</div>
     </div>
 </div>
 
 @code {
+
+
+
     public void Dispose()
     {
         JS.InvokeVoidAsync("stopMusicNotesAnimation");
@@ -318,10 +324,7 @@
     string email = "";
     string password = "";
     string message = "";
-    protected override Task OnInitializedAsync()
-    {
-        return base.OnInitializedAsync();
-    }
+
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -331,15 +334,24 @@
         }
     }
 
-    async Task login()
+    async Task Login()
     {
         TunersDB T = new TunersDB();
         Tuners tuners = await T.Login(email, password);
 
         if (tuners != null)
         {
-            await MySession.SetAsync("Tuner", tuners);
-            navigationManager.NavigateTo("/Chatsss");
+            if (tuners.banned == 1)
+            {
+                message = "User Banned";
+                email = "";
+                password = "";
+            }
+            else
+            {
+                await MySession.SetAsync("Tuner", tuners);
+                navigationManager.NavigateTo("/Chatsss");
+            }
         }
         else
         {
@@ -349,6 +361,10 @@
         }
     }
 
+    void ForgotPassword()
+    {
+        navigationManager.NavigateTo("/Forgot");
+    }
     void Register()
     {
         navigationManager.NavigateTo("/Register");

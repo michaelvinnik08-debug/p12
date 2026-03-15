@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.23" />
+    <PackageReference Include="Resend" Version="0.2.1" />
   </ItemGroup>
 
   <ItemGroup>

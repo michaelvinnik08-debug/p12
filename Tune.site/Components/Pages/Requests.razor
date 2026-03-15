@@ -1,0 +1,45 @@
+﻿@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage MySession
+@inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
+@using Moduls
+@using DBL
+@page "/Requests"
+
+<h1>HIIIIIII @name</h1>
+
+
+@code {
+    Tuners tuners = new Tuners();
+    string name = "";
+    protected override async Task OnInitializedAsync()
+
+    {
+
+
+        try
+
+        {
+
+            var result = await MySession.GetAsync<Tuners>("Tuner");
+            if (result.Success)
+
+
+
+            {
+
+
+
+                tuners = result.Value;
+
+
+
+                name = tuners.username;
+            }
+        }
+        catch
+        {
+            navigationManager.NavigateTo("/");
+        }
+
+    }
+}
