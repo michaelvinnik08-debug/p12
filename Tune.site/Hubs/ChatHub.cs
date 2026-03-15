@@ -16,6 +16,7 @@ namespace Tune.site.Hubs
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, $"Chat_{chatId}");
         }
+        //fsf
 
         public async Task SendMessage(int chatId, int userId, string text, DateTime time)
         {
