@@ -69,8 +69,6 @@
         }
     </div>
 
-    @* ==================== ADDED: Right-side Search Panel + Tab Button ==================== *@
-
     <!-- Dim overlay -->
     <div class="search-panel-overlay @(showSearch ? "search-panel-visible" : "")" @onclick="HideSearch"></div>
 
@@ -98,7 +96,7 @@
                 <input class="search-input"
                        type="text"
                        placeholder="Type a username..."
-                       @bind-value="searchQuery"
+                       value="searchQuery"
                        @bind:event="oninput"
                        @onkeydown="OnSearchKeyDown" />
                 <button class="search-btn" @onclick="() => SearchUsers(searchQuery)">Search</button>
@@ -123,7 +121,7 @@
                                 <span class="search-username">@user.username</span>
                             </div>
                             <button class="send-request-btn" @onclick="() => ToProfile(user)">
-                                📮 Request
+                                👤 To Profile
                             </button>
                         </div>
                     }
@@ -139,7 +137,6 @@
         </div>
     </div>
 
-    @* ==================== END ADDED ==================== *@
 </div>
 
 <style>
@@ -401,8 +398,6 @@
         }
     }
 
-    /* ==================== ADDED: Right-side Search Panel Styles ==================== */
-
     /* Dim overlay */
     .search-panel-overlay {
         position: fixed;
@@ -420,8 +415,6 @@
             background-color: rgba(0,0,0,0.45);
             pointer-events: all;
         }
-
-    /* Tab button — fixed to right edge, vertically centered */
     .search-tab-btn {
         position: fixed;
         right: 0;
@@ -697,8 +690,6 @@
             width: 85%;
         }
     }
-
-    /* ==================== END ADDED ==================== */
 </style>
 
 @code {
@@ -827,7 +818,7 @@
         navigationManager.NavigateTo("/Admin");
     }
 
-    // ==================== ADDED: Search Panel State & Logic ====================
+    //  Search Panel State & Logic
 
     private bool showSearch = false;
     private string searchQuery = "";
@@ -881,5 +872,5 @@
         navigationManager.NavigateTo("/Profile"); 
     }
 
-    // ==================== END ADDED ====================
+    
 }

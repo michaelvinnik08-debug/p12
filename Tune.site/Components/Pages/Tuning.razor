@@ -1,0 +1,54 @@
+﻿@page "/Tuning"
+@using System.Text
+@using System.Text.Json
+@inject IHttpClientFactory HttpClientFactory
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage MySession
+@inject NavigationManager navigationManager
+@inject IJSRuntime JS
+@using Moduls
+@using DBL
+
+
+<h1>Tuning</h1>
+
+@code {
+    private Tuners currentUser;
+    private bool loading = true;
+    private string error = "";
+    TunersDB TunersDB = new TunersDB();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Step 1: get current user from session
+        var result = await MySession.GetAsync<Tuners>("Tuner");
+        if (!result.Success)
+        {
+            error = "You must be logged in.";
+            loading = false;
+            return;
+        }
+        currentUser = result.Value;
+
+        // Step 2: get all emails from Tune.site database
+        List<string> allEmails = await TunersDB.GetAllEmailsAsync();
+
+        // Step 3: send emails to API and get back genre vectors
+        var client = HttpClientFactory.CreateClient();
+        string json = JsonSerializer.Serialize(allEmails);
+        HttpContent content = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await client.PostAsync("http://localhost:PORT/api/usergenres/batch", content);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            error = "Could not reach the API.";
+            loading = false;
+            return;
+        }
+
+        string responseJson = await response.Content.ReadAsStringAsync();
+        // we'll use this in the next segment
+
+        loading = false;
+    }
+}

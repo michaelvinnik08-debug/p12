@@ -1,0 +1,376 @@
+﻿@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage MySession
+@inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
+@using Moduls
+@using DBL
+@page "/Requests"
+
+<style>
+    :root {
+        --primary-color: #FF7A00;
+        --background1: #3B1F1F;
+        --background2: #2D1616;
+        --card-bg: #3C2E2E;
+        --input-border: #4F3C3C;
+        --text-color: #FFF3E2;
+        --muted-text: #B8A89A;
+        --accent-color: #E94E77;
+        --border-radius: 12px;
+        --shadow: 0 8px 20px rgba(255, 122, 0, 0.2);
+    }
+
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    .requests-root {
+        background-color: var(--background1);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: var(--text-color);
+        min-height: 100vh;
+        padding: 0;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 1rem;
+        background-color: var(--background2);
+        border-bottom: 2px solid var(--primary-color);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+        .page-header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+    .greeting {
+        font-size: 0.85rem;
+        color: var(--muted-text);
+    }
+
+    .table-wrapper {
+        background-color: var(--card-bg);
+        border-radius: var(--border-radius);
+        margin: 1rem;
+        border: 2px solid transparent;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        animation: cardFadeIn 0.4s ease-out;
+    }
+
+    @@keyframes cardFadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .table-toolbar {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--input-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: var(--background2);
+    }
+
+    .toolbar-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .count-badge {
+        font-size: 0.8rem;
+        background-color: var(--background1);
+        border: 1px solid var(--primary-color);
+        border-radius: 20px;
+        padding: 2px 12px;
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    thead th {
+        padding: 12px 1.25rem;
+        text-align: left;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted-text);
+        border-bottom: 1px solid var(--input-border);
+        background-color: var(--background2);
+    }
+
+    tbody tr {
+        border-bottom: 1px solid var(--input-border);
+        transition: background 0.2s;
+    }
+
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background-color: #4A3535;
+        }
+
+    tbody td {
+        padding: 1rem 1.25rem;
+        font-size: 0.9rem;
+        vertical-align: middle;
+    }
+
+    .user-cell {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #FF7A00, #FF9A00);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        font-weight: bold;
+        color: white;
+        flex-shrink: 0;
+        text-transform: uppercase;
+    }
+
+    .user-name {
+        font-weight: 600;
+        color: var(--text-color);
+    }
+
+    .user-id {
+        font-size: 0.72rem;
+        color: var(--muted-text);
+        margin-top: 2px;
+        font-family: monospace;
+    }
+
+    .actions {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+
+    .btn {
+        padding: 7px 16px;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+    }
+
+    .btn-accept {
+        background: transparent;
+        border-color: #3ecf8e;
+        color: #3ecf8e;
+    }
+
+        .btn-accept:hover {
+            background: #3ecf8e;
+            color: #1a0a00;
+            box-shadow: 0 0 12px rgba(62, 207, 142, 0.3);
+            transform: scale(1.03);
+        }
+
+    .btn-deny {
+        background: transparent;
+        border-color: var(--accent-color);
+        color: var(--accent-color);
+    }
+
+        .btn-deny:hover {
+            background: var(--accent-color);
+            color: white;
+            box-shadow: 0 0 12px rgba(233, 78, 119, 0.3);
+            transform: scale(1.03);
+        }
+
+    .empty-state {
+        text-align: center;
+        padding: 5rem 2rem;
+        margin: 1rem;
+        background-color: var(--card-bg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+    }
+
+    .empty-icon {
+        font-size: 3.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.4;
+    }
+
+    .empty-state h2 {
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        font-size: 0.9rem;
+        color: var(--muted-text);
+    }
+</style>
+
+<div class="requests-root">
+    <div class="page-header">
+        <h1>Requests</h1>
+        <span class="greeting">Hi, @name</span>
+    </div>
+    @if (requests.Count > 0)
+    {
+        <div class="table-wrapper">
+            <div class="table-toolbar">
+                <span class="toolbar-title">Pending Requests</span>
+                <span class="count-badge">@requests.Count</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>From</th>
+                        <th>To</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var request in requests)
+                    {
+                        inviterUsers.TryGetValue(request.inviter, out var inviterUser);
+                        var initials = GetInitials(inviterUser?.username);
+                        <tr>
+                            <td>
+                                <div class="user-cell">
+                                    <div class="avatar">@initials</div>
+                                    <div>
+                                        <div class="user-name">@(inviterUser?.username ?? "Unknown")</div>
+                                        <div class="user-id">#@request.inviter</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="color: var(--muted); font-size: 0.82rem;">@request.invited</td>
+                            <td>
+                                <div class="actions">
+                                    <button class="btn btn-accept" @onclick="() => AcceptRequest(request)">
+                                        ✓ Accept
+                                    </button>
+                                    <button class="btn btn-deny" @onclick="() => DenyRequest(request)">
+                                        ✕ Deny
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <h2>No requests for now!</h2>
+            <p>When someone sends you a request, it'll show up here.</p>
+        </div>
+    }
+
+</div>
+
+@code {
+    List<Requests> requests = new List<Requests>();
+    Dictionary<int, Tuners> inviterUsers = new Dictionary<int, Tuners>();
+    RequestsDB requestDB = new RequestsDB();
+    TunersDB TunersDB = new TunersDB();
+    Tuners tuners = new Tuners();
+    ChatsDB chatsDB = new ChatsDB();
+    string name = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await MySession.GetAsync<Tuners>("Tuner");
+            if (result.Success)
+            {
+                tuners = result.Value;
+                name = tuners.username;
+            }
+            requests = await requestDB.GetInvitedRequests(tuners);
+
+
+            foreach (var request in requests)
+            {
+                if (!inviterUsers.ContainsKey(request.inviter))
+                {
+                    var user = await TunersDB.SelectUserID(request.inviter);
+                    inviterUsers[request.inviter] = user;
+                }
+            }
+        }
+        catch
+        {
+            navigationManager.NavigateTo("/");
+        }
+    }
+
+    protected async Task AcceptRequest(Requests request)
+    {
+        Chats chats = new Chats()
+        {
+            user1 = request.inviter,
+            user2 = request.invited
+        };
+       await chatsDB.InsertGetObjAsync(chats);
+        await requestDB.Unsend(request.inviter, request.invited);
+        requests.Remove(request);
+    }
+
+    protected async Task DenyRequest(Requests request)
+    {
+        await requestDB.Unsend(request.inviter, request.invited);
+        requests.Remove(request);
+    }
+
+    private string GetInitials(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username)) return "?";
+        var parts = username.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2) return $"{parts[0][0]}{parts[1][0]}";
+        return username.Length >= 2 ? username.Substring(0, 2) : username.Substring(0, 1);
+    }
+}

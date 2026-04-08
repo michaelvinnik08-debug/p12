@@ -11,17 +11,13 @@ namespace Moduls
         public int id { get; set; }
         public int invited { get; set; }
         public int inviter { get; set; }
-        public int accapted { get; set; }
-        public int denied { get; set; }
         public DateTime matched { get; set; }
         public Requests() {}
-        public Requests(int id, int inviter, int invited, int accapted, int denied,DateTime matched)
+        public Requests(int id, int inviter, int invited,DateTime matched)
         {
             this.id = id;
             this.inviter = inviter;
             this.invited = invited;
-            this.accapted = accapted;
-            this.denied = denied;
             this.matched = matched;
         }
     }

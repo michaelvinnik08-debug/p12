@@ -12,14 +12,15 @@ namespace Moduls
         public string report { get; set; }
         public int reported { get; set; }
         public int reporter { get; set; }
-        public int solved { get; set; }
+        public DateTime created_at { get;set; }
         public Reports () { }
-        public Reports(int id,string report, int reported, int reporter)
+        public Reports(int id,string report, int reported, int reporter,DateTime created_at)
         {
             this.id = id;
             this.report = report;
             this.reported = reported;
             this.reporter = reporter;
+            this.created_at = created_at;
         }
     }
 }

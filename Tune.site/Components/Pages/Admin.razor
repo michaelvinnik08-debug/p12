@@ -344,8 +344,8 @@
 
     private async Task<bool> Ban(int id, int reported)
     {
-        int t = await Tune.Bannedornot(0, reported);
-        int r = await ReportDB.TheSolver(1, id);
+        int t = await Tune.Bannedornot(1, reported);
+        int r = await ReportDB.DeleteReport(id);
         return r != 0 && t != 0;
     }
         
@@ -362,15 +362,12 @@
             StateHasChanged();
         }
     }
-
-    // NEW: Dismiss report without banning
     private async Task DismissReport(int reportId)
     {
-        int result = await ReportDB.TheSolver(1, reportId);
+        int result = await ReportDB.DeleteReport(reportId);
 
         if (result != 0)
         {
-            // Remove this specific report from the list
             Report.RemoveAll(r => r.id == reportId);
             StateHasChanged();
         }
@@ -382,3 +379,4 @@
         navigationManager.NavigateTo("/Chatsss");
     }
 }
+//think about how you wanna do reports pema ban, option to unban or timer

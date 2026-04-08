@@ -27,7 +27,6 @@ namespace DBL
                 Dictionary<string, object> fillValues = new Dictionary<string, object>()
             {
                 { "user1_id", c.user1 },
-                { "message",  c.message},
                 { "user2_id", c.user2 }
             };
                 return (Chats)await base.InsertGetObjAsync(fillValues);
@@ -41,8 +40,7 @@ namespace DBL
             c.user1 = int.Parse(row[1].ToString());
             c.message = row[2].ToString();
             c.last = DateTime.Parse(row[3].ToString());
-            c.is_read = int.Parse(row[4].ToString());
-            c.user2 = int.Parse(row[5].ToString());
+            c.user2 = int.Parse(row[4].ToString());
             return  c;
         }
         public  async Task<int> UpdateAsync(string message,DateTime Time,Chats c)

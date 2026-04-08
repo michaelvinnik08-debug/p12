@@ -24,6 +24,16 @@ namespace DBL
         {
             return ((List<Tuners>)await SelectAllAsync());
         }
+        public async Task<List<string>> GetAllEmailsAsync()
+        {
+            List<Tuners> tuners = await GetAllAsync();
+            List<string> emails = new List<string>();
+            foreach (Tuners t in tuners)
+            {
+                emails.Add(t.email);
+            }
+            return  emails;
+        }
         public async Task<Tuners> SelectUserID(int id)
             {
             Dictionary<string, object> filter = new Dictionary<string, object>();

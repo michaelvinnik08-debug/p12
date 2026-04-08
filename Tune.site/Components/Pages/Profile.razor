@@ -13,14 +13,69 @@
         <div class="profile-avatar">
             @GetInitials(other.username)
         </div>
-
-        <!-- Action Button -->
         <button class="profile-button" @onclick="HandleClick">
             @buttonText
         </button>
 
+        <!-- Report Button -->
+        <button class="report-button" @onclick="OpenReport">
+            Report
+        </button>
+
     </div>
 </div>
+
+<!-- Report Modal -->
+@if (showReport)
+{
+    <div class="modal-overlay">
+        <div class="modal-box">
+            <p class="modal-title">Report user</p>
+            <p class="modal-subtitle">Select the main reason for your report. It will remain anonymous.</p>
+
+            @if (!string.IsNullOrEmpty(cooldownMessage))
+            {
+                <p class="cooldown-msg">⏳ @cooldownMessage</p>
+            }
+            else if (reportSubmitted)
+            {
+                <p class="success-msg">✅ Report submitted. Thank you.</p>
+            }
+            else
+            {
+                <div class="options-list">
+                    @foreach (var category in reportCategories)
+                    {
+                        <label class="option-label">
+                            <input type="radio" name="report" value="@category"
+                                   @onchange="() => selectedCategory = category" />
+                            <span class="option-text">@category</span>
+                        </label>
+                    }
+                </div>
+
+                @if (selectedCategory == "Other")
+                {
+                    <textarea class="other-textarea" placeholder="Describe the issue..."
+                              @bind="otherText"></textarea>
+                }
+
+                <div class="modal-buttons">
+                    <button class="cancel-button" @onclick="CloseReport">Cancel</button>
+                    <button class="submit-button" @onclick="SubmitReport">Submit report</button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(cooldownMessage) || reportSubmitted)
+            {
+                <div class="modal-buttons" style="margin-top: 1rem;">
+                    <button class="cancel-button" style="flex:1" @onclick="CloseReport">Close</button>
+                </div>
+            }
+
+        </div>
+    </div>
+}
 
 <style>
     .profile-page {
@@ -40,7 +95,6 @@
         gap: 2rem;
     }
 
-    /* Bigger circle */
     .profile-avatar {
         width: 140px;
         height: 140px;
@@ -49,15 +103,14 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 3rem; /* Bigger letters */
+        font-size: 3rem;
         font-weight: bold;
         color: white;
         text-transform: uppercase;
         box-shadow: 0 6px 18px rgba(255,122,0,0.35);
-        border: 3px solid #2D1616; /* thinner visual feel */
+        border: 3px solid #2D1616;
     }
 
-    /* Centered button */
     .profile-button {
         background: linear-gradient(135deg, #FF7A00, #cc6200);
         border: none;
@@ -80,6 +133,136 @@
             transform: scale(0.97);
         }
 
+    .report-button {
+        background: transparent;
+        border: 0.5px solid #555;
+        border-radius: 10px;
+        color: #aaa;
+        font-size: 0.9rem;
+        padding: 0.5rem 1.5rem;
+        cursor: pointer;
+        min-width: 220px;
+        transition: border-color 0.2s ease, color 0.2s ease;
+    }
+
+        .report-button:hover {
+            border-color: #e8450a;
+            color: #e8450a;
+        }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.75);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-box {
+        background: #1a1a1a;
+        border: 0.5px solid #333;
+        border-radius: 12px;
+        padding: 1.5rem;
+        width: 100%;
+        max-width: 380px;
+    }
+
+    .modal-title {
+        color: #fff;
+        font-size: 17px;
+        font-weight: 500;
+        margin: 0 0 0.5rem;
+    }
+
+    .modal-subtitle {
+        color: #aaa;
+        font-size: 13px;
+        margin: 0 0 1.25rem;
+    }
+
+    .options-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 1.25rem;
+    }
+
+    .option-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+    }
+
+        .option-label input[type="radio"] {
+            accent-color: #e8450a;
+            width: 16px;
+            height: 16px;
+        }
+
+    .option-text {
+        font-size: 14px;
+        color: #ddd;
+    }
+
+    .other-textarea {
+        width: 100%;
+        background: #111;
+        border: 0.5px solid #444;
+        border-radius: 8px;
+        color: #ddd;
+        font-size: 13px;
+        padding: 10px;
+        resize: none;
+        box-sizing: border-box;
+        font-family: inherit;
+        margin-bottom: 1.25rem;
+    }
+
+    .modal-buttons {
+        display: flex;
+        gap: 10px;
+    }
+
+    .cancel-button {
+        flex: 1;
+        padding: 10px;
+        background: transparent;
+        border: 0.5px solid #444;
+        border-radius: 8px;
+        color: #aaa;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    .submit-button {
+        flex: 1;
+        padding: 10px;
+        background: linear-gradient(135deg, #e8450a, #c0200a);
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    .success-msg {
+        font-size: 13px;
+        color: #aaa;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    .cooldown-msg {
+        font-size: 13px;
+        color: #e8450a;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
     @@media (max-width: 600px) {
         .profile-avatar {
             width: 110px;
@@ -87,7 +270,7 @@
             font-size: 2.2rem;
         }
 
-        .profile-button {
+        .profile-button, .report-button {
             min-width: 180px;
             padding: 0.65rem 1.5rem;
         }
@@ -100,6 +283,15 @@
     Tuners other = new Tuners();
     ChatsDB chatsDB = new ChatsDB();
     RequestsDB requestsDB = new RequestsDB();
+    ReportsDB reportsDB = new ReportsDB();
+
+    bool showReport = false;
+    bool reportSubmitted = false;
+    string selectedCategory = "";
+    string otherText = "";
+    string cooldownMessage = "";
+
+    List<string> reportCategories = new ReportsDB().GetReportCategories();
 
     protected override async Task OnInitializedAsync()
     {
@@ -146,15 +338,7 @@
 
         if (request != null)
         {
-            if (request.denied == 1)
-            {
-                buttonText = "Request denied ): You Can Try To Send Again";
-            }
-            else
-            {
-                buttonText = "Already Requested! Waiting For Answer...";
-            }
-
+            buttonText = "Already Requested! Waiting For Answer...";
             return;
         }
 
@@ -190,7 +374,57 @@
         }
     }
 
-    // Added from first page (UNCHANGED logic)
+    private void OpenReport()
+    {
+        showReport = true;
+        reportSubmitted = false;
+        selectedCategory = "";
+        otherText = "";
+        cooldownMessage = "";
+    }
+
+    private void CloseReport()
+    {
+        showReport = false;
+        reportSubmitted = false;
+        selectedCategory = "";
+        otherText = "";
+        cooldownMessage = "";
+    }
+
+    private async Task SubmitReport()
+    {
+        if (string.IsNullOrEmpty(selectedCategory))
+            return;
+
+        string reportText = selectedCategory == "Other" && !string.IsNullOrWhiteSpace(otherText)
+            ? otherText
+            : selectedCategory;
+
+        Reports report = new Reports()
+        {
+            reporter = tuners.Id,
+            reported = other.Id,
+            report = reportText
+        };
+
+        TimeSpan? remaining = await reportsDB.InsertGetObjAsync(report);
+
+        if (remaining.HasValue)
+        {
+            // Still in cooldown — show how long they need to wait
+            int hours = (int)remaining.Value.TotalHours;
+            int minutes = remaining.Value.Minutes;
+            cooldownMessage = $"You already reported this user. Try again in {hours}h {minutes}m.";
+        }
+        else
+        {
+            reportSubmitted = true;
+        }
+
+        StateHasChanged();
+    }
+
     private string GetInitials(string username)
     {
         if (string.IsNullOrWhiteSpace(username)) return "?";

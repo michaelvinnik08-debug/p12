@@ -26,16 +26,14 @@ namespace DBL
             m.id = int.Parse(row[0].ToString());
             m.inviter = int.Parse(row[1].ToString());
             m.invited=int.Parse(row[2].ToString());
-            m.accapted=int.Parse(row[3].ToString());
-            m.denied=int.Parse(row[4].ToString());
-            m.matched=DateTime.Parse(row[5].ToString());
+            m.matched=DateTime.Parse(row[3].ToString());
             return m;
             
         }
-        public async Task<List<Requests>> GetRequests(Tuners T)
+        public async Task<List<Requests>> GetInvitedRequests(Tuners T)
         {
             Dictionary<string, object> filter = new Dictionary<string, object>();
-            filter.Add("id",T.Id );
+            filter.Add("invited_id",T.Id );
             List<Requests> m = ((List<Requests>)await SelectAllAsync(filter));
             return m;
         }
