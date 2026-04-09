@@ -96,7 +96,7 @@
                 <input class="search-input"
                        type="text"
                        placeholder="Type a username..."
-                       value="searchQuery"
+                       @bind-value="searchQuery"
                        @bind:event="oninput"
                        @onkeydown="OnSearchKeyDown" />
                 <button class="search-btn" @onclick="() => SearchUsers(searchQuery)">Search</button>

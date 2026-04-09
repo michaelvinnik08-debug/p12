@@ -29,7 +29,6 @@ namespace DBL
             m.Time = row[2] == DBNull.Value
                    ? DateTime.UtcNow
                    : DateTime.Parse(row[2].ToString());
-
             m.chatid = int.Parse(row[3].ToString());
             m.userid = int.Parse(row[4].ToString());
             return m;

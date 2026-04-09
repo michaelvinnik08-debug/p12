@@ -41,7 +41,7 @@ namespace DBL
             return r;
         }
 
-        // Returns null on success, or a TimeSpan of how long the user still needs to wait
+        
         public async Task<TimeSpan?> InsertGetObjAsync(Reports R)
         {
             if (!IsValidCategory(R.report))
