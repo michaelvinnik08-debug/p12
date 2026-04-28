@@ -5,11 +5,17 @@
 @inject Microsoft.AspNetCore.Components.NavigationManager navigationManager
 @page "/Profile"
 
-<h1 class="hero-title" style="text-align:center">@other.username</h1>
+
+<div class="profile-header">
+    <button class="back-button" @onclick="GoBack">←</button>
+    <h1 class="hero-title">@other.username</h1>
+    <div></div> @* Spacer for centering *@
+</div>
+
+
 <div class="profile-page">
     <div class="profile-container">
-
-        <!-- Avatar -->
+       
         <div class="profile-avatar">
             @GetInitials(other.username)
         </div>
@@ -17,15 +23,14 @@
             @buttonText
         </button>
 
-        <!-- Report Button -->
+       
         <button class="report-button" @onclick="OpenReport">
             Report
         </button>
-
     </div>
 </div>
 
-<!-- Report Modal -->
+
 @if (showReport)
 {
     <div class="modal-overlay">
@@ -43,6 +48,8 @@
             }
             else
             {
+                if (buttonText == "Go To Chat !")
+                {
                 <div class="options-list">
                     @foreach (var category in reportCategories)
                     {
@@ -53,7 +60,21 @@
                         </label>
                     }
                 </div>
-
+                }
+                else
+                {
+                    <div class="options-list">
+                        @for (int i = 0; i < Math.Min(2, reportCategories.Count); i++)
+                        {
+                            <label class="option-label">
+                                <input type="radio" name="report" value="@reportCategories[i]"
+                                       @onchange="() => selectedCategory = reportCategories[i]" />
+                                <span class="option-text">@reportCategories[i]</span>
+                            </label>
+                        }
+                    </div>
+                }
+                }
                 @if (selectedCategory == "Other")
                 {
                     <textarea class="other-textarea" placeholder="Describe the issue..."
@@ -72,14 +93,55 @@
                     <button class="cancel-button" style="flex:1" @onclick="CloseReport">Close</button>
                 </div>
             }
-
         </div>
     </div>
 }
 
 <style>
+   
+    .profile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 1rem;
+        background-color: #2D1616;
+        border-bottom: 2px solid #FF7A00;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .back-button {
+        background: none;
+        border: none;
+        color: #FF7A00;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        width: 40px;
+        height: 40px;
+    }
+
+        .back-button:hover {
+            background-color: rgba(255, 122, 0, 0.1);
+            border-radius: 50%;
+            transform: scale(1.1);
+        }
+
+    .hero-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #FF7A00;
+        margin: 0;
+    }
+    
+
     .profile-page {
-        min-height: 100vh;
+        min-height: calc(100vh - 80px);
         background-color: #3B1F1F;
         display: flex;
         justify-content: center;
@@ -412,7 +474,6 @@
 
         if (remaining.HasValue)
         {
-            // Still in cooldown — show how long they need to wait
             int hours = (int)remaining.Value.TotalHours;
             int minutes = remaining.Value.Minutes;
             cooldownMessage = $"You already reported this user. Try again in {hours}h {minutes}m.";
@@ -423,6 +484,12 @@
         }
 
         StateHasChanged();
+    }
+
+   
+    private void GoBack()
+    {
+        navigationManager.NavigateTo("/Chatsss");
     }
 
     private string GetInitials(string username)

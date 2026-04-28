@@ -9,18 +9,240 @@
 @using Moduls
 @using DBL
 
+<div class="tuning-header">
+    <button class="back-button" @onclick="GoBack">←</button>
+    <h1>Tuning</h1>
+    <div></div> @* Spacer for centering *@
+</div>
 
-<h1>Tuning</h1>
+
+<style>
+    :root {
+        --primary-color: #FF7A00;
+        --background1: #3B1F1F;
+        --background2: #1E1A1A;
+        --card-bg: #2E2424;
+        --text-color: #FFF3E2;
+        --muted-text: #C7B6A3;
+        --border-radius: 12px;
+        --shadow: 0 8px 20px rgba(255, 122, 0, 0.4);
+    }
+
+    
+    .tuning-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 1rem;
+        background-color: #2D1616;
+        border-bottom: 2px solid var(--primary-color);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+        .tuning-header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+    .back-button {
+        background: none;
+        border: none;
+        color: var(--primary-color);
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        width: 40px;
+        height: 40px;
+    }
+
+        .back-button:hover {
+            background-color: rgba(255, 122, 0, 0.1);
+            border-radius: 50%;
+            transform: scale(1.1);
+        }
+    
+
+    .tuning-page {
+        min-height: calc(100vh - 80px);
+        background: linear-gradient(135deg, var(--background1), var(--background2));
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .match-card {
+        background: var(--card-bg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        padding: 2.5rem;
+        width: 340px;
+        text-align: center;
+        color: var(--text-color);
+    }
+
+        .match-card h2 {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 12px var(--primary-color);
+        }
+
+    .distance-badge {
+        background: #3C2E2E;
+        color: var(--muted-text);
+        border-radius: 20px;
+        padding: 0.3rem 0.8rem;
+        font-size: 0.85rem;
+        margin-bottom: 1.2rem;
+        display: inline-block;
+    }
+
+    .genre-list {
+        list-style: none;
+        padding: 0;
+        margin-bottom: 1.5rem;
+    }
+
+        .genre-list li {
+            background: #3C2E2E;
+            border-radius: 8px;
+            padding: 0.4rem 0.8rem;
+            margin-bottom: 0.4rem;
+            display: flex;
+            justify-content: space-between;
+            color: var(--muted-text);
+        }
+
+            .genre-list li span.amount {
+                color: var(--primary-color);
+                font-weight: bold;
+            }
+
+    .btn-row {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .like-btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.7rem 2rem;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 0 10px var(--primary-color);
+        transition: box-shadow 0.3s;
+    }
+
+        .like-btn:hover {
+            box-shadow: 0 0 20px var(--primary-color);
+        }
+
+    .decline-btn {
+        background: #3C2E2E;
+        color: var(--muted-text);
+        border: 2px solid #4F3C3C;
+        border-radius: 8px;
+        padding: 0.7rem 2rem;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: border-color 0.3s;
+    }
+
+        .decline-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--text-color);
+        }
+
+    .end-message {
+        color: var(--muted-text);
+        font-size: 1.2rem;
+        text-align: center;
+    }
+
+    .error-message {
+        color: #E94E77;
+        text-align: center;
+    }
+</style>
+
+<div class="tuning-page">
+    @if (loading)
+    {
+        <p style="color: var(--text-color)">Finding your wavelength...</p>
+    }
+    else if (!string.IsNullOrEmpty(error))
+    {
+        <p class="error-message">@error</p>
+    }
+    else if (finished || currentIndex >= matches.Count)
+    {
+        <div class="match-card">
+            <h2>You're all caught up!</h2>
+            <p class="end-message">No more users to show right now. Check back later!</p>
+        </div>
+    }
+    else
+    {
+        var current = matches[currentIndex];
+        <div class="match-card">
+            <h2>@current.user.Name</h2>
+            <div class="distance-badge">Distance: @Math.Round(current.distance, 1)</div>
+            <ul class="genre-list">
+                @foreach (var genre in current.user.Genres.OrderByDescending(g => g.Amount))
+                {
+                    <li>
+                        <span>@genre.Genre</span>
+                        <span class="amount">@genre.Amount plays</span>
+                    </li>
+                }
+            </ul>
+            <div class="btn-row">
+                <button class="like-btn" @onclick="Like">♪ Like</button>
+                <button class="decline-btn" @onclick="Decline">✕ Pass</button>
+            </div>
+        </div>
+    }
+</div>
 
 @code {
     private Tuners currentUser;
     private bool loading = true;
     private string error = "";
     TunersDB TunersDB = new TunersDB();
+    private List<ApiUserResult> candidates = new List<ApiUserResult>();
+    private List<(ApiUserResult user, double distance)> matches = new List<(ApiUserResult, double)>();
+    private int currentIndex = 0;
+    private bool finished = false;
+
+    private class GenreVector
+    {
+        public string Genre { get; set; }
+        public int Amount { get; set; }
+    }
+
+    private class ApiUserResult
+    {
+        public string Email { get; set; }
+        public string Name { get; set; }
+        public List<GenreVector> Genres { get; set; }
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        // Step 1: get current user from session
         var result = await MySession.GetAsync<Tuners>("Tuner");
         if (!result.Success)
         {
@@ -30,14 +252,12 @@
         }
         currentUser = result.Value;
 
-        // Step 2: get all emails from Tune.site database
         List<string> allEmails = await TunersDB.GetAllEmailsAsync();
 
-        // Step 3: send emails to API and get back genre vectors
         var client = HttpClientFactory.CreateClient();
         string json = JsonSerializer.Serialize(allEmails);
         HttpContent content = new StringContent(json, Encoding.UTF8, "application/json");
-        var response = await client.PostAsync("http://localhost:PORT/api/usergenres/batch", content);
+        var response = await client.PostAsync("http://localhost:5102/api/usergenres/batch", content);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -47,8 +267,88 @@
         }
 
         string responseJson = await response.Content.ReadAsStringAsync();
-        // we'll use this in the next segment
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        List<ApiUserResult> allUsers = JsonSerializer.Deserialize<List<ApiUserResult>>(responseJson, options);
+
+        RequestsDB requestsDB = new RequestsDB();
+        ChatsDB chatsDB = new ChatsDB();
+
+        foreach (ApiUserResult apiUser in allUsers)
+        {
+            if (apiUser.Email == currentUser.email) continue;
+
+            Tuners tuner = await TunersDB.SelectUserEmail(apiUser.Email);
+            if (tuner == null) continue;
+
+            if (await requestsDB.GetRequestBetween2Users(currentUser.Id, tuner.Id) != null) continue;
+            if (await chatsDB.SelectChatByUserId(currentUser.Id, tuner.Id) != null) continue;
+
+            // Set the username from the database
+            apiUser.Name = tuner.username;
+
+            candidates.Add(apiUser);
+        }
+
+        var currentUserResult = await client.GetAsync($"http://localhost:5102/api/usergenres/{currentUser.email}");
+        string currentUserJson = await currentUserResult.Content.ReadAsStringAsync();
+        List<GenreVector> currentUserGenres = JsonSerializer.Deserialize<List<GenreVector>>(currentUserJson, options);
+
+        Dictionary<string, int> currentVector = currentUserGenres.ToDictionary(g => g.Genre, g => g.Amount);
+
+        foreach (ApiUserResult candidate in candidates)
+        {
+            Dictionary<string, int> candidateVector = candidate.Genres.ToDictionary(g => g.Genre, g => g.Amount);
+            double distance = CalculateDistance(currentVector, candidateVector);
+            matches.Add((candidate, distance));
+        }
+
+        matches = matches.OrderBy(m => m.distance).Take(5).ToList();
 
         loading = false;
     }
+
+    private double CalculateDistance(Dictionary<string, int> user1, Dictionary<string, int> user2)
+    {
+        double sum = 0;
+        var allGenres = user1.Keys.Union(user2.Keys);
+
+        foreach (string genre in allGenres)
+        {
+            int val1 = user1.ContainsKey(genre) ? user1[genre] : 0;
+            int val2 = user2.ContainsKey(genre) ? user2[genre] : 0;
+            sum += Math.Pow(val1 - val2, 2);
+        }
+
+        return Math.Sqrt(sum);
+    }
+
+    private async Task Like()
+    {
+        var current = matches[currentIndex];
+
+        Tuners otherTuner = await TunersDB.SelectUserEmail(current.user.Email);
+        if (otherTuner != null)
+        {
+            RequestsDB requestsDB = new RequestsDB();
+            await requestsDB.NewRequest(currentUser.Id, otherTuner.Id);
+        }
+
+        currentIndex++;
+        if (currentIndex >= matches.Count)
+            finished = true;
+    }
+
+    private void Decline()
+    {
+        currentIndex++;
+        if (currentIndex >= matches.Count)
+            finished = true;
+    }
+
+   
+    private void GoBack()
+    {
+        navigationManager.NavigateTo("/Chatsss");
+    }
+
 }

@@ -45,41 +45,73 @@
         z-index: 100;
     }
 
-        .page-header h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin: 0;
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .back-button {
+        background: none;
+        border: none;
+        color: var(--primary-color);
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        width: 40px;
+        height: 40px;
+    }
+
+        .back-button:hover {
+            background-color: rgba(255, 122, 0, 0.1);
+            border-radius: 50%;
+            transform: scale(1.1);
         }
+
+    .page-header h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin: 0;
+    }
+    
 
     .greeting {
         font-size: 0.85rem;
         color: var(--muted-text);
     }
 
+    .table-container {
+        display: flex;
+        justify-content: center;
+        padding: 1rem;
+    }
+
     .table-wrapper {
         background-color: var(--card-bg);
         border-radius: var(--border-radius);
-        margin: 1rem;
         border: 2px solid transparent;
         box-shadow: var(--shadow);
         overflow: hidden;
         animation: cardFadeIn 0.4s ease-out;
+        max-width: 900px;
+        width: 100%;
     }
 
     @@keyframes cardFadeIn {
-        from
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
 
-    {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     .table-toolbar {
@@ -249,55 +281,61 @@
 </style>
 
 <div class="requests-root">
+   
     <div class="page-header">
-        <h1>Requests</h1>
+        <div class="header-left">
+            <button class="back-button" @onclick="GoBack">←</button>
+            <h1>Requests</h1>
+        </div>
         <span class="greeting">Hi, @name</span>
     </div>
+    
+
     @if (requests.Count > 0)
     {
-        <div class="table-wrapper">
-            <div class="table-toolbar">
-                <span class="toolbar-title">Pending Requests</span>
-                <span class="count-badge">@requests.Count</span>
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>From</th>
-                        <th>To</th>
-                        <th style="text-align:right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var request in requests)
-                    {
-                        inviterUsers.TryGetValue(request.inviter, out var inviterUser);
-                        var initials = GetInitials(inviterUser?.username);
+        <div class="table-container">
+            <div class="table-wrapper">
+                <div class="table-toolbar">
+                    <span class="toolbar-title">Pending Requests</span>
+                    <span class="count-badge">@requests.Count</span>
+                </div>
+                <table>
+                    <thead>
                         <tr>
-                            <td>
-                                <div class="user-cell">
-                                    <div class="avatar">@initials</div>
-                                    <div>
-                                        <div class="user-name">@(inviterUser?.username ?? "Unknown")</div>
-                                        <div class="user-id">#@request.inviter</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td style="color: var(--muted); font-size: 0.82rem;">@request.invited</td>
-                            <td>
-                                <div class="actions">
-                                    <button class="btn btn-accept" @onclick="() => AcceptRequest(request)">
-                                        ✓ Accept
-                                    </button>
-                                    <button class="btn btn-deny" @onclick="() => DenyRequest(request)">
-                                        ✕ Deny
-                                    </button>
-                                </div>
-                            </td>
+                            <th>From</th>
+                            <th style="text-align:center">Actions</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var request in requests)
+                        {
+                            inviterUsers.TryGetValue(request.inviter, out var inviterUser);
+                            var initials = GetInitials(inviterUser?.username);
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="avatar">@initials</div>
+                                        <div>
+                                            <div class="user-name">@(inviterUser?.username ?? "Unknown")</div>
+                                            <div class="user-id">#@request.inviter</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="actions">
+                                        <button class="btn btn-accept" @onclick="() => AcceptRequest(request)">
+                                            ✓ Accept
+                                        </button>
+                                        <button class="btn btn-deny" @onclick="() => DenyRequest(request)">
+                                            ✕ Deny
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     }
     else
@@ -308,7 +346,6 @@
             <p>When someone sends you a request, it'll show up here.</p>
         </div>
     }
-
 </div>
 
 @code {
@@ -332,7 +369,6 @@
             }
             requests = await requestDB.GetInvitedRequests(tuners);
 
-
             foreach (var request in requests)
             {
                 if (!inviterUsers.ContainsKey(request.inviter))
@@ -355,16 +391,25 @@
             user1 = request.inviter,
             user2 = request.invited
         };
-       await chatsDB.InsertGetObjAsync(chats);
+        await chatsDB.InsertGetObjAsync(chats);
         await requestDB.Unsend(request.inviter, request.invited);
         requests.Remove(request);
+        StateHasChanged();
     }
 
     protected async Task DenyRequest(Requests request)
     {
         await requestDB.Unsend(request.inviter, request.invited);
         requests.Remove(request);
+        StateHasChanged();
     }
+
+   
+    private void GoBack()
+    {
+        navigationManager.NavigateTo("/Chatsss");
+    }
+  
 
     private string GetInitials(string username)
     {

@@ -16,6 +16,7 @@ namespace Tune.site
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
 
+            builder.Services.AddHttpClient();
             // Register MessagesDB for dependency injection
             builder.Services.AddScoped<MessagesDB>();
 
