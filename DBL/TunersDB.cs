@@ -101,7 +101,7 @@ namespace DBL
             Dictionary<string, object> values = new Dictionary<string, object>();
             values.Add("banned", ban);
             filter.Add("id", Id);
-            return await base.UpdateAsync(filter, values); 
+            return await base.UpdateAsync(values,filter); 
         }
         public async Task<Tuners> Login(string email,string password)
         {

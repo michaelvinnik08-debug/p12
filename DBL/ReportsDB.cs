@@ -9,14 +9,14 @@ using System.Threading.Tasks;
 namespace DBL
 {
     public class ReportsDB : BaseDB<Reports>
-    {//fix
+    {
         public static class ReportCategory
         {
             public const string FakeOrImpersonation = "Fake or impersonation";
+            public const string InappropriateProfileContent = "Inappropriate profile content";
             public const string InappropriateLanguage = "Inappropriate language";
             public const string SpamOrFlooding = "Spam or flooding";
             public const string HarassmentOrThreats = "Harassment or threats";
-            public const string InappropriateProfileContent = "Inappropriate profile content";
             public const string Other = "Other";
         }
 
@@ -102,11 +102,11 @@ namespace DBL
         {
             return new List<string>
             {
+                ReportCategory.FakeOrImpersonation,
+                ReportCategory.InappropriateProfileContent,
                 ReportCategory.InappropriateLanguage,
                 ReportCategory.SpamOrFlooding,
                 ReportCategory.HarassmentOrThreats,
-                ReportCategory.FakeOrImpersonation,
-                ReportCategory.InappropriateProfileContent,
                 ReportCategory.Other
             };
         }

@@ -19,6 +19,12 @@
         <div class="profile-avatar">
             @GetInitials(other.username)
         </div>
+
+        <div class="profile-info">
+            <div class="info-label">User since</div>
+            <div class="info-value">@other.created.ToString("dd/MM/yyyy")</div>
+        </div>
+
         <button class="profile-button" @onclick="HandleClick">
             @buttonText
         </button>
@@ -64,17 +70,21 @@
                 else
                 {
                     <div class="options-list">
-                        @for (int i = 0; i < Math.Min(2, reportCategories.Count); i++)
+                        @for (int i = 0; i < 6; i++)
                         {
-                            <label class="option-label">
-                                <input type="radio" name="report" value="@reportCategories[i]"
-                                       @onchange="() => selectedCategory = reportCategories[i]" />
-                                <span class="option-text">@reportCategories[i]</span>
-                            </label>
+                            if (i == 2) { i = 4; continue; } 
+
+                            int captured = i; // capture loop variable for closure
+                         <label class="option-label">
+                             <input type="radio" name="report" value="@reportCategories[captured]"
+                                    @onchange="() => selectedCategory = reportCategories[captured]" />
+                             <span class="option-text">@reportCategories[captured]</span>
+                        </label>
                         }
+                        
                     </div>
                 }
-                }
+                
                 @if (selectedCategory == "Other")
                 {
                     <textarea class="other-textarea" placeholder="Describe the issue..."
@@ -171,6 +181,31 @@
         text-transform: uppercase;
         box-shadow: 0 6px 18px rgba(255,122,0,0.35);
         border: 3px solid #2D1616;
+    }
+
+    .profile-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.75rem 1.5rem;
+        background: rgba(255, 122, 0, 0.1);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 122, 0, 0.2);
+    }
+
+    .info-label {
+        font-size: 0.85rem;
+        color: #C7B6A3;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+    }
+
+    .info-value {
+        font-size: 1.1rem;
+        color: #FF7A00;
+        font-weight: 600;
     }
 
     .profile-button {
@@ -376,6 +411,13 @@
             }
 
             other = result2.Value;
+
+            // If viewing your own profile, redirect to Update page
+            if (tuners.Id == other.Id)
+            {
+                navigationManager.NavigateTo("/Update");
+                return;
+            }
 
             await DetermineStatus();
         }
