@@ -92,8 +92,16 @@ namespace DBL
                 Dictionary<string, object> values = new Dictionary<string, object>();
                 values.Add("name", username);
                 values.Add("password", password);
-                filter.Add("id", T.Id.ToString());
+                filter.Add("id", T.Id);
             return await base.UpdateAsync( values,filter);
+        }
+        public async Task<int> UpdatePasswordAsync(string email, string password)
+        {
+            Dictionary<string, object> filter = new Dictionary<string, object>();
+            Dictionary<string, object> values = new Dictionary<string, object>();
+            values.Add("password", password);
+            filter.Add("email", email);
+            return await base.UpdateAsync(values, filter);
         }
         public async Task<int> Bannedornot(int ban, int Id)
         {

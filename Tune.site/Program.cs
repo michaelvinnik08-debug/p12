@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using Tune.site.Components;
 using DBL;
-using System.Threading.Tasks;
+using Resend;
 
 namespace Tune.site
 {
@@ -9,14 +9,22 @@ namespace Tune.site
     {
         public static async Task Main(string[] args)
         {
-            await Resend.message(0);
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
-
             builder.Services.AddHttpClient();
+
+            // Register Resend
+            builder.Services.AddOptions();
+            builder.Services.AddHttpClient<ResendClient>();
+            builder.Services.Configure<ResendClientOptions>(o =>
+            {
+                o.ApiToken = "YOUR_NEW_API_KEY_HERE"; // use your new key after regenerating!
+            });
+            builder.Services.AddTransient<IResend, ResendClient>();
+
             // Register MessagesDB for dependency injection
             builder.Services.AddScoped<MessagesDB>();
 
@@ -33,7 +41,6 @@ namespace Tune.site
 
             app.UseStaticFiles();
             app.UseAntiforgery();
-
             app.MapRazorComponents<App>()
                 .AddInteractiveServerRenderMode();
 

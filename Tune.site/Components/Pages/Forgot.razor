@@ -1,36 +1,313 @@
-﻿@inject IJSRuntime JS
-@page "/Forgot"
+﻿@page "/Forgot"
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage MySession
+@inject NavigationManager navigationManager
+@inject IJSRuntime JS
+@using Moduls
+@using DBL
 
-@if (!sent)
-{
-    <h1 class="hero-title">Forgot Password</h1>
-<label>Email</label>
-<input type="text" @bind-value="email" placeholder="Email" />
-<button @onclick="SendEmail">Send email</button>
-}
-@if(sent)
-{
-    <h1>HI</h1>
-}
+<style>
+    body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .message {
+        color: var(--accent-color);
+        min-height: 20px;
+        margin-top: 0.5rem;
+    }
+
+    :root {
+        --primary-color: #FF7A00;
+        --background1: #3B1F1F;
+        --background2: #1E1A1A;
+        --background3: #4A2C2C;
+        --card-bg: #2E2424;
+        --text-color: #FFF3E2;
+        --muted-text: #C7B6A3;
+        --accent-color: #E94E77;
+        --border-radius: 12px;
+        --input-bg: #3C2E2E;
+        --input-border: #4F3C3C;
+        --shadow: 0 8px 20px rgba(255, 122, 0, 0.4);
+    }
+
+    .forgot-page {
+        min-height: 100vh;
+        width: 100%;
+        background: linear-gradient(135deg, var(--background1), var(--background2), var(--background3));
+        background-size: 300% 300%;
+        animation: bgFlow 10s ease-in-out infinite;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+        box-sizing: border-box;
+        padding: 2rem 1rem;
+    }
+
+    @@keyframes bgFlow {
+        0% {
+            background-position: 0% 0%;
+        }
+
+        50% {
+            background-position: 100% 100%;
+        }
+
+        100% {
+            background-position: 0% 0%;
+        }
+    }
+
+    .forgot-card {
+        position: fixed;
+        z-index: 2;
+        background-color: var(--card-bg);
+        padding: 2.5rem 3rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        width: 340px;
+        max-width: 90vw;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+        .forgot-card h1 {
+            margin-bottom: 0.5rem;
+            font-weight: 900;
+            font-size: 2rem;
+            color: var(--primary-color);
+            text-shadow: 0 0 12px var(--primary-color);
+        }
+
+        .forgot-card p {
+            color: var(--muted-text);
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
+            .forgot-card p strong {
+                color: var(--primary-color);
+            }
+
+    label {
+        font-weight: bold;
+        color: var(--muted-text);
+        display: block;
+        margin-bottom: 0.3rem;
+        text-align: left;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+        width: 100%;
+        padding: 0.7rem;
+        margin-bottom: 0.5rem;
+        border-radius: 6px;
+        border: 1px solid var(--input-border);
+        font-size: 1rem;
+        background: var(--input-bg);
+        color: var(--text-color);
+        box-sizing: border-box;
+    }
+
+    input:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        background: #4b3a3a;
+    }
+
+    button {
+        width: 100%;
+        padding: 0.7rem;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: bold;
+        background: var(--primary-color);
+        color: white;
+        box-shadow: 0 0 10px var(--primary-color);
+        transition: background 0.3s, box-shadow 0.3s;
+    }
+
+        button:hover {
+            background: #ff8f2d;
+            box-shadow: 0 0 20px #ff8f2d;
+        }
+
+    .error-msg {
+        color: var(--accent-color);
+        font-size: 0.88rem;
+        text-align: center;
+        min-height: 20px;
+    }
+
+    /* Music notes — copied from home page */
+    .music-note {
+        position: fixed;
+        pointer-events: none;
+        user-select: none;
+        color: rgba(255, 122, 0, 0.75);
+        font-size: var(--note-size);
+        animation-name: floatMove, pulseGlow;
+        animation-timing-function: linear, ease-in-out;
+        animation-fill-mode: forwards;
+        animation-iteration-count: 1, infinite;
+        will-change: transform, opacity, filter;
+        z-index: 1;
+    }
+
+    @@keyframes floatMove {
+        0% {
+            transform: translate(0, 0) rotate(0deg);
+            opacity: 1;
+        }
+
+        70% {
+            opacity: 1;
+        }
+
+        100% {
+            transform: translate(var(--move-x), var(--move-y)) rotate(360deg);
+            opacity: 0;
+        }
+    }
+
+    @@keyframes pulseGlow {
+        0% {
+            filter: drop-shadow(0 0 2px rgba(255, 140, 0, 0.4));
+        }
+
+        50% {
+            filter: drop-shadow(0 0 12px rgba(255, 140, 0, 0.85));
+        }
+
+        100% {
+            filter: drop-shadow(0 0 2px rgba(255, 140, 0, 0.4));
+        }
+    }
+</style>
+
+<div class="forgot-page">
+    <div class="forgot-card">
+
+        @if (step == 1)
+        {
+            <h1>Forgot Password</h1>
+            <label>Email</label>
+            <input type="text" @bind-value="email" placeholder="Enter your email" />
+            <button @onclick="SendEmail">Send Email</button>
+        }
+
+        @if (step == 2)
+        {
+            <h1>Check Email</h1>
+            <p>We sent a code to <strong>@email</strong></p>
+            <label>Enter Code</label>
+            <input type="number" @bind-value="userCode" placeholder="Enter 6-digit code" />
+            <button @onclick="CheckCode">Verify</button>
+        }
+        @if (step==3)
+        {
+            <h1>New Password</h1>
+            <label>New password</label>
+            <input type="password" @bind-value="password" placeholder="Enter new password..." />
+            <label>Confirm password</label>
+            <input type="password" @bind-value="passwordconf" placeholder="Confirm new password..." />
+            <button @onclick="CreateNewPassword">Change Password</button>
+        }
+
+        <p class="error-msg">@errorMsg</p>
+
+    </div>
+</div>
+
 @code {
-    bool sent = false;
+    int step = 1;
     int confnum = 0;
     string email = "";
+    int userCode = 0;
+    bool wrongCode = false;
+    string password = "";
+    string passwordconf = "";
+    string errorMsg = "";
+    TunersDB TunersDB = new TunersDB();
+    Tuners Tuners=new Tuners();
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("stopMusicNotesAnimation");
+            await JS.InvokeVoidAsync("startMusicNotesAnimation"); // same notes as home!
         }
     }
+
     public async Task SendEmail()
     {
-        Random Rnd = new Random();
-        confnum = Rnd.Next(10, 100);
-        await Resend.message( confnum);
-        sent = true;
-       StateHasChanged();
-
+        try
+        {
+            Random rnd = new Random();
+            confnum = rnd.Next(100000, 999999);
+            await EmailService.SendMessage(email, confnum);
+            step = 2;
+            errorMsg = "";
+        }
+        catch (Exception ex)
+        {
+            errorMsg = "Failed to send email: " + ex.Message;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
     }
 
+    public async Task CheckCode()
+    {
+        if (userCode == confnum)
+        {
+            step = 3;
+            StateHasChanged();
+        }
+        else
+        {
+            errorMsg = "Wrong code, try again!";
+            StateHasChanged();
+        }
+    }
+    public async Task CreateNewPassword()
+    {
+        if(password==passwordconf)
+        {
+            if(password.Length>=6)
+            {
+                await TunersDB.UpdatePasswordAsync(email, password);
+                Tuners = await TunersDB.Login(email, password);
+
+                await MySession.SetAsync("Tuner", Tuners);
+                navigationManager.NavigateTo("/Chatsss");
+            }
+            else
+            {
+                password = "";
+                passwordconf = "";
+                errorMsg = "Password Length Must Be 6 Characters Or Longer";
+            }
+
+        }
+        else
+        {
+            passwordconf = "";
+            errorMsg = "Confirm Password Must Match Password";
+        }
+    }
 }
