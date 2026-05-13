@@ -47,9 +47,19 @@
             @foreach (Chats c in chats)
             {
                 <div class="chat-card" @onclick="() => Chat(c.id)">
-                    <div class="chat-avatar">
-                        @GetInitials(GetOtherUserName(c))
-                    </div>
+                    @if (!string.IsNullOrEmpty(GetOtherUserPicture(c)))
+                    {
+                        <div class="chat-avatar" style="background:none; padding:0;">
+                            <img src="@GetOtherUserPicture(c)"
+                                 style="width:50px;height:50px;border-radius:50%;object-fit:cover;display:block;" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="chat-avatar">
+                            @GetInitials(GetOtherUserName(c))
+                        </div>
+                    }
                     <div class="chat-content">
                         <div class="chat-header-row">
                             <span class="chat-username">@GetOtherUserName(c)</span>
@@ -75,7 +85,6 @@
 
     <!-- Tab button fixed to right edge, vertically centered -->
     <button class="search-tab-btn @(showSearch ? "search-open" : "")" @onclick="ToggleSearch" title="Find Users">
-        <!-- Arrow SVG: points LEFT (toward center) when closed, RIGHT when open -->
         <svg viewBox="0 0 12 24" xmlns="http://www.w3.org/2000/svg" width="12" height="24">
             <polyline points="9,3 3,12 9,21"
                       fill="none"
@@ -90,7 +99,7 @@
     <div class="search-panel @(showSearch ? "search-panel-open" : "")">
         <div class="search-panel-inner">
             <div class="search-panel-header">
-                <span class="search-panel-title">🔍 Find Users</span>           
+                <span class="search-panel-title">🔍 Find Users</span>
             </div>
 
             <div class="search-bar-row">
@@ -117,7 +126,19 @@
                     @foreach (var user in searchResults)
                     {
                         <div class="search-result-card">
-                            <div class="search-avatar">@GetInitials(user.username)</div>
+                            @if (!string.IsNullOrEmpty(user.picture) && user.picture != "0")
+                            {
+                                <div class="search-avatar" style="background:none; padding:0;">
+                                    <img src="@user.picture"
+                                         style="width:38px;height:38px;border-radius:50%;object-fit:cover;display:block;" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="search-avatar">
+                                    @GetInitials(user.username)
+                                </div>
+                            }
                             <div class="search-user-info">
                                 <span class="search-username">@user.username</span>
                             </div>
@@ -308,6 +329,7 @@
         color: white;
         flex-shrink: 0;
         text-transform: uppercase;
+        overflow: hidden;
     }
 
     .chat-content {
@@ -399,7 +421,6 @@
         }
     }
 
-    /* Dim overlay */
     .search-panel-overlay {
         position: fixed;
         top: 0;
@@ -450,7 +471,6 @@
             transform: scaleX(-1);
         }
 
-    /* Search panel — slides in from the right, 50% wide, full height */
     .search-panel {
         position: fixed;
         top: 0;
@@ -555,7 +575,7 @@
         }
 
         .search-btn:active {
-           transform: scale(0.97); 
+            transform: scale(0.97);
         }
 
     .search-results {
@@ -622,6 +642,7 @@
         color: white;
         flex-shrink: 0;
         text-transform: uppercase;
+        overflow: hidden;
     }
 
     .search-user-info {
@@ -692,7 +713,6 @@
 </style>
 
 @code {
-    // Menu state
     private bool showMenu = false;
 
     string name = "";
@@ -700,6 +720,7 @@
     string message = "";
     List<Chats> chats = new List<Chats>();
     Dictionary<int, string> usernames = new Dictionary<int, string>();
+    Dictionary<int, string> userpictures = new Dictionary<int, string>(); // stores pictures by user id
     Tuners T = new Tuners();
     ChatsDB C = new ChatsDB();
     TunersDB U = new TunersDB();
@@ -711,7 +732,6 @@
         {
             await JS.InvokeVoidAsync("stopMusicNotesAnimation");
         }
-
     }
 
     protected override async Task OnInitializedAsync()
@@ -737,7 +757,10 @@
                         {
                             var otherUser = await U.SelectUserID(otherUserId);
                             if (otherUser != null)
+                            {
                                 usernames[otherUserId] = otherUser.username;
+                                userpictures[otherUserId] = otherUser.picture; // fetch picture from DB
+                            }
                         }
                     }
                 }
@@ -756,11 +779,23 @@
         return usernames.ContainsKey(otherUserId) ? usernames[otherUserId] : "Unknown";
     }
 
+    // returns picture string or null if user has no picture
+    private string GetOtherUserPicture(Chats chat)
+    {
+        int otherUserId = GetOtherUserId(chat);
+        if (!userpictures.ContainsKey(otherUserId)) return null;
+        string pic = userpictures[otherUserId];
+        // treat null, empty, or "0" as no picture
+        if (string.IsNullOrEmpty(pic) || pic == "0") return null;
+        return pic;
+    }
+
     private int GetOtherUserId(Chats chat)
     {
         return (chat.user1 == tuners.Id) ? chat.user2 : chat.user1;
     }
-
+    // returns picture string or null if user has no picture
+  
     private string GetInitials(string username)
     {
         if (string.IsNullOrWhiteSpace(username)) return "?";
@@ -804,6 +839,7 @@
         HideMenu();
         navigationManager.NavigateTo("/Update");
     }
+
     async Task Tuning()
     {
         HideMenu();
@@ -821,8 +857,6 @@
         HideMenu();
         navigationManager.NavigateTo("/Admin");
     }
-
-    //  Search Panel State & Logic
 
     private bool showSearch = false;
     private string searchQuery = "";
@@ -856,7 +890,6 @@
         if (e.Key == "Enter") await SearchUsers(searchQuery);
     }
 
-    // ADDED: Stub — Add your search DB logic here
     private async Task SearchUsers(string name)
     {
         if (string.IsNullOrWhiteSpace(searchQuery)) return;
@@ -869,12 +902,11 @@
         StateHasChanged();
     }
 
-    
     private async Task ToProfile(Tuners targetUser)
     {
-        await MySession.SetAsync("Other",targetUser);
-        navigationManager.NavigateTo("/Profile"); 
+        // clear picture before storing in session to avoid size limit issues
+        targetUser.picture = null;
+        await MySession.SetAsync("Other", targetUser);
+        navigationManager.NavigateTo("/Profile");
     }
-
-    
 }

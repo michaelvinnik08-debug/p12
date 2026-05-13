@@ -337,7 +337,7 @@
     {
         TunersDB T = new TunersDB();
         Tuners tuners = await T.Login(email, password);
-
+        tuners.picture = null;
         if (tuners != null)
         {
             if (tuners.banned == 1)

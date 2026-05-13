@@ -20,6 +20,32 @@ namespace DBL
         {
             return "id";
         }
+        protected override async Task<Tuners> CreateModelAsync(object[] rows)
+        {
+            Tuners t = new Tuners();
+            t.Id = int.Parse(rows[0].ToString());
+            t.username = rows[1].ToString();
+            t.email = rows[2].ToString();
+            t.password = rows[3].ToString();
+            t.role = int.Parse(rows[4].ToString());
+            t.banned = int.Parse(rows[5].ToString());
+            t.created = DateTime.Parse(rows[6].ToString());
+
+            if (rows.Length > 7 && rows[7] != null && rows[7] != DBNull.Value)
+            {
+                // Handle both string and byte array (BLOB returns byte[])
+                if (rows[7] is byte[] bytes)
+                    t.picture = Encoding.UTF8.GetString(bytes);
+                else
+                    t.picture = rows[7].ToString();
+            }
+            else
+            {
+                t.picture = null;
+            }
+
+            return t;
+        }
         public async Task<List<Tuners>> GetAllAsync()
         {
             return ((List<Tuners>)await SelectAllAsync());
@@ -73,27 +99,7 @@ namespace DBL
             }
             else return null;
         }
-        protected override async Task<Tuners> CreateModelAsync(object[] rows)
-        {
-            Tuners t = new Tuners();
-            t.Id = int.Parse(rows[0].ToString());
-            t.username = rows[1].ToString();
-            t.email = rows[2].ToString();
-            t.password = rows[3].ToString();
-            t.role = int.Parse(rows[4].ToString());
-            t.banned = int.Parse(rows[5].ToString());
-            t.created = DateTime.Parse(rows[6].ToString());
-            // Handle picture column (index 7) - it might be null or DBNull
-            if (rows.Length > 7 && rows[7] != null && rows[7] != DBNull.Value)
-            {
-                t.picture = rows[7].ToString();
-            }
-            else
-            {
-                t.picture = null;
-            }
-            return t;
-        }
+        
         public async Task<int> UpdateAsync(Tuners T,string username,string password )
         {
                 Dictionary<string, object> filter = new Dictionary<string, object>();
@@ -129,6 +135,10 @@ namespace DBL
         }
         public async Task<int> UpdatePictureAsync(int id, string picture)
         {
+            // Optional guard: reject suspiciously large strings
+            if (picture != null && picture.Length > 5_000_000)
+                throw new ArgumentException("Image too large.");
+
             Dictionary<string, object> filter = new Dictionary<string, object>();
             Dictionary<string, object> values = new Dictionary<string, object>();
             values.Add("picture", picture);

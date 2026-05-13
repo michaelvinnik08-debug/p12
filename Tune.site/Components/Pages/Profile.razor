@@ -15,10 +15,20 @@
 
 <div class="profile-page">
     <div class="profile-container">
-       
-        <div class="profile-avatar">
-            @GetInitials(other.username)
-        </div>
+
+        @if (!string.IsNullOrEmpty(profilePictureUrl))
+        {
+            <div class="profile-avatar" style="background:none; padding:0;">
+                <img src="@profilePictureUrl"
+                     style="width:140px;height:140px;border-radius:50%;object-fit:cover;display:block;" />
+            </div>
+        }
+        else
+        {
+            <div class="profile-avatar">
+                @GetInitials(other.username)
+            </div>
+        }
 
         <div class="profile-info">
             <div class="info-label">User since</div>
@@ -381,6 +391,7 @@
     ChatsDB chatsDB = new ChatsDB();
     RequestsDB requestsDB = new RequestsDB();
     ReportsDB reportsDB = new ReportsDB();
+    string profilePictureUrl = null;
 
     bool showReport = false;
     bool reportSubmitted = false;
@@ -400,7 +411,6 @@
                 navigationManager.NavigateTo("/");
                 return;
             }
-
             tuners = result.Value;
 
             var result2 = await MySession.GetAsync<Tuners>("Other");
@@ -409,17 +419,21 @@
                 navigationManager.NavigateTo("/");
                 return;
             }
-
             other = result2.Value;
 
-            // If viewing your own profile, redirect to Update page
+            // Fetch full user data from DB to get picture (session doesn't store it)
+            TunersDB db = new TunersDB();
+            var freshOther = await db.SelectUserID(other.Id);
+            if (freshOther != null && !string.IsNullOrEmpty(freshOther.picture) && freshOther.picture != "0")
+                profilePictureUrl = freshOther.picture;
+
             if (tuners.Id == other.Id)
             {
                 navigationManager.NavigateTo("/Update");
                 return;
             }
-
             await DetermineStatus();
+            StateHasChanged();
         }
         catch (Exception e)
         {

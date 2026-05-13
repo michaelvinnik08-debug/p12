@@ -12,9 +12,8 @@
 <div class="tuning-header">
     <button class="back-button" @onclick="GoBack">←</button>
     <h1>Tuning</h1>
-    <div></div> @* Spacer for centering *@
+    <div></div>
 </div>
-
 
 <style>
     :root {
@@ -28,7 +27,6 @@
         --shadow: 0 8px 20px rgba(255, 122, 0, 0.4);
     }
 
-    
     .tuning-header {
         display: flex;
         justify-content: space-between;
@@ -68,7 +66,6 @@
             border-radius: 50%;
             transform: scale(1.1);
         }
-    
 
     .tuning-page {
         min-height: calc(100vh - 80px);
@@ -95,6 +92,18 @@
             margin-bottom: 0.5rem;
             text-shadow: 0 0 12px var(--primary-color);
         }
+        .match-avatar {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: #4F3C3C;
+            color: var(--muted-text);
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+    }
 
     .distance-badge {
         background: #3C2E2E;
@@ -173,10 +182,46 @@
         text-align: center;
     }
 
-    .error-message {
-        color: #E94E77;
+    .error-card {
+        background: var(--card-bg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        padding: 2.5rem;
+        width: 340px;
         text-align: center;
+        color: var(--text-color);
     }
+
+    .error-title {
+        color: #E94E77;
+        font-size: 1.4rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .error-detail {
+        color: var(--muted-text);
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+        line-height: 1.5;
+    }
+
+    .retry-btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.7rem 2rem;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 0 10px var(--primary-color);
+        transition: box-shadow 0.3s;
+        width: 100%;
+    }
+
+        .retry-btn:hover {
+            box-shadow: 0 0 20px var(--primary-color);
+        }
 </style>
 
 <div class="tuning-page">
@@ -186,7 +231,11 @@
     }
     else if (!string.IsNullOrEmpty(error))
     {
-        <p class="error-message">@error</p>
+        <div class="error-card">
+            <h2 class="error-title">⚠ Connection Error</h2>
+            <p class="error-detail">@error</p>
+            <button class="retry-btn" @onclick="Retry">↺ Retry</button>
+        </div>
     }
     else if (finished || currentIndex >= matches.Count)
     {
@@ -199,6 +248,19 @@
     {
         var current = matches[currentIndex];
         <div class="match-card">
+            @if (!string.IsNullOrEmpty(current.user.Picture))
+            {
+                <div class="match-avatar" style="background:none; padding:0;">
+                    <img src="@current.user.Picture"
+                         style="width:90px;height:90px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 1rem;" />
+                </div>
+            }
+            else
+            {
+                <div class="match-avatar">
+                    @GetInitials(current.user.Name)
+                </div>
+            }
             <h2>@current.user.Name</h2>
             <div class="distance-badge">Distance: @Math.Round(current.distance, 1)</div>
             <ul class="genre-list">
@@ -223,8 +285,8 @@
     private bool loading = true;
     private string error = "";
     TunersDB TunersDB = new TunersDB();
-    private List<ApiUserResult> candidates = new List<ApiUserResult>();
-    private List<(ApiUserResult user, double distance)> matches = new List<(ApiUserResult, double)>();
+    private List<(ApiUserResult user, double distance)> matches = new();
+    private string currentMatchPicture = null;
     private int currentIndex = 0;
     private bool finished = false;
 
@@ -238,117 +300,163 @@
     {
         public string Email { get; set; }
         public string Name { get; set; }
+        public string Picture { get; set; }
         public List<GenreVector> Genres { get; set; }
     }
 
     protected override async Task OnInitializedAsync()
     {
         var result = await MySession.GetAsync<Tuners>("Tuner");
-        if (!result.Success)
+        if (!result.Success || result.Value == null)
         {
             error = "You must be logged in.";
             loading = false;
             return;
         }
         currentUser = result.Value;
+        await LoadData();
+    }
 
-        List<string> allEmails = await TunersDB.GetAllEmailsAsync();
+    private async Task LoadData()
+    {
+        loading = true;
+        error = "";
+        matches = new();
+        currentIndex = 0;
+        finished = false;
+        StateHasChanged();
 
-        var client = HttpClientFactory.CreateClient();
-        string json = JsonSerializer.Serialize(allEmails);
-        HttpContent content = new StringContent(json, Encoding.UTF8, "application/json");
-        var response = await client.PostAsync("http://localhost:5102/api/usergenres/batch", content);
-
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            error = "Could not reach the API.";
+            List<string> allEmails = await TunersDB.GetAllEmailsAsync();
+
+            var client = HttpClientFactory.CreateClient();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            // Fetch all users' genres
+            string json = JsonSerializer.Serialize(allEmails);
+            HttpContent content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await client.PostAsync("http://localhost:5102/api/usergenres/batch", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                error = $"The music API returned an error ({(int)response.StatusCode}). Please try again later.";
+                loading = false;
+                return;
+            }
+
+            string responseJson = await response.Content.ReadAsStringAsync();
+            List<ApiUserResult> allUsers = JsonSerializer.Deserialize<List<ApiUserResult>>(responseJson, options);
+
+            if (allUsers == null || allUsers.Count == 0)
+            {
+                loading = false;
+                return; // Will show "all caught up"
+            }
+
+            // Fetch current user's genres
+            var currentUserResult = await client.GetAsync($"http://localhost:5102/api/usergenres/{currentUser.email}");
+            if (!currentUserResult.IsSuccessStatusCode)
+            {
+                error = "Could not load your genre data. Please try again later.";
+                loading = false;
+                return;
+            }
+
+            string currentUserJson = await currentUserResult.Content.ReadAsStringAsync();
+            List<GenreVector> currentUserGenres = JsonSerializer.Deserialize<List<GenreVector>>(currentUserJson, options);
+
+            if (currentUserGenres == null || currentUserGenres.Count == 0)
+            {
+                error = "No genre data found for your account. Make sure your music is connected.";
+                loading = false;
+                return;
+            }
+
+            RequestsDB requestsDB = new RequestsDB();
+            ChatsDB chatsDB = new ChatsDB();
+            Dictionary<string, int> currentVector = currentUserGenres.ToDictionary(g => g.Genre, g => g.Amount);
+
+            foreach (ApiUserResult apiUser in allUsers)
+            {
+                if (apiUser.Email == currentUser.email) continue;
+                if (apiUser.Genres == null || apiUser.Genres.Count == 0) continue;
+
+                Tuners tuner = await TunersDB.SelectUserEmail(apiUser.Email);
+                if (tuner == null) continue;
+                if (await requestsDB.GetRequestBetween2Users(currentUser.Id, tuner.Id) != null) continue;
+                if (await chatsDB.SelectChatByUserId(currentUser.Id, tuner.Id) != null) continue;
+
+                apiUser.Name = tuner.username;
+                apiUser.Picture = !string.IsNullOrEmpty(tuner.picture) && tuner.picture != "0" ? tuner.picture : null;
+
+                Dictionary<string, int> candidateVector = apiUser.Genres.ToDictionary(g => g.Genre, g => g.Amount);
+                double distance = CalculateDistance(currentVector, candidateVector);
+                matches.Add((apiUser, distance));
+            }
+
+            matches = matches.OrderBy(m => m.distance).Take(5).ToList();
+        }
+        catch (HttpRequestException)
+        {
+            error = "Could not connect to the music API (localhost:5102). Make sure the API server is running and try again.";
+        }
+        catch (Exception ex)
+        {
+            error = $"Something went wrong: {ex.Message}";
+        }
+        finally
+        {
             loading = false;
-            return;
+            StateHasChanged();
         }
+    }
 
-        string responseJson = await response.Content.ReadAsStringAsync();
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        List<ApiUserResult> allUsers = JsonSerializer.Deserialize<List<ApiUserResult>>(responseJson, options);
-
-        RequestsDB requestsDB = new RequestsDB();
-        ChatsDB chatsDB = new ChatsDB();
-
-        foreach (ApiUserResult apiUser in allUsers)
-        {
-            if (apiUser.Email == currentUser.email) continue;
-
-            Tuners tuner = await TunersDB.SelectUserEmail(apiUser.Email);
-            if (tuner == null) continue;
-
-            if (await requestsDB.GetRequestBetween2Users(currentUser.Id, tuner.Id) != null) continue;
-            if (await chatsDB.SelectChatByUserId(currentUser.Id, tuner.Id) != null) continue;
-
-            // Set the username from the database
-            apiUser.Name = tuner.username;
-
-            candidates.Add(apiUser);
-        }
-
-        var currentUserResult = await client.GetAsync($"http://localhost:5102/api/usergenres/{currentUser.email}");
-        string currentUserJson = await currentUserResult.Content.ReadAsStringAsync();
-        List<GenreVector> currentUserGenres = JsonSerializer.Deserialize<List<GenreVector>>(currentUserJson, options);
-
-        Dictionary<string, int> currentVector = currentUserGenres.ToDictionary(g => g.Genre, g => g.Amount);
-
-        foreach (ApiUserResult candidate in candidates)
-        {
-            Dictionary<string, int> candidateVector = candidate.Genres.ToDictionary(g => g.Genre, g => g.Amount);
-            double distance = CalculateDistance(currentVector, candidateVector);
-            matches.Add((candidate, distance));
-        }
-
-        matches = matches.OrderBy(m => m.distance).Take(5).ToList();
-
-        loading = false;
+    private async Task Retry()
+    {
+        await LoadData();
     }
 
     private double CalculateDistance(Dictionary<string, int> user1, Dictionary<string, int> user2)
     {
         double sum = 0;
-        var allGenres = user1.Keys.Union(user2.Keys);
-
-        foreach (string genre in allGenres)
+        foreach (string genre in user1.Keys.Union(user2.Keys))
         {
-            int val1 = user1.ContainsKey(genre) ? user1[genre] : 0;
-            int val2 = user2.ContainsKey(genre) ? user2[genre] : 0;
+            int val1 = user1.GetValueOrDefault(genre);
+            int val2 = user2.GetValueOrDefault(genre);
             sum += Math.Pow(val1 - val2, 2);
         }
-
         return Math.Sqrt(sum);
     }
 
     private async Task Like()
     {
         var current = matches[currentIndex];
-
         Tuners otherTuner = await TunersDB.SelectUserEmail(current.user.Email);
         if (otherTuner != null)
         {
             RequestsDB requestsDB = new RequestsDB();
             await requestsDB.NewRequest(currentUser.Id, otherTuner.Id);
         }
-
-        currentIndex++;
-        if (currentIndex >= matches.Count)
-            finished = true;
+        Advance();
     }
 
-    private void Decline()
+    private void Decline() => Advance();
+
+    private void Advance()
     {
         currentIndex++;
         if (currentIndex >= matches.Count)
             finished = true;
     }
 
-   
-    private void GoBack()
+    private string GetInitials(string username)
     {
-        navigationManager.NavigateTo("/Chatsss");
+        if (string.IsNullOrWhiteSpace(username)) return "?";
+        var parts = username.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2) return $"{parts[0][0]}{parts[1][0]}";
+        return username.Length >= 2 ? username.Substring(0, 2) : username.Substring(0, 1);
     }
 
+    private void GoBack() => navigationManager.NavigateTo("/Chatsss");
 }

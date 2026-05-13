@@ -18,12 +18,13 @@ namespace Moduls
         public string picture { get; set; }
 
         public Tuners() { }
-        public Tuners(int Id, string username,string email ,string password)
+        public Tuners(int Id, string username,string email ,string password,string picture)
         {
             this.Id = Id;
             this.username = username;
             this.password = password;
             this.email = email;
+            this.picture = picture;
         }
     }
 }
