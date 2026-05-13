@@ -251,6 +251,29 @@
         }
     }
 
+    private bool ValidatePassword(string pwd)
+    {
+        if (pwd.Length < 6)
+        {
+            errorMsg = "Password must be at least 6 characters long";
+            return false;
+        }
+
+        if (!pwd.Any(char.IsDigit))
+        {
+            errorMsg = "Password must contain at least 1 number";
+            return false;
+        }
+
+        if (!pwd.Any(ch => !char.IsLetterOrDigit(ch)))
+        {
+            errorMsg = "Password must contain at least 1 special character";
+            return false;
+        }
+
+        return true;
+    }
+
     public async Task SendEmail()
     {
         try
@@ -288,21 +311,19 @@
     {
         if(password==passwordconf)
         {
-            if(password.Length>=6)
-            {
-                await TunersDB.UpdatePasswordAsync(email, password);
-                Tuners = await TunersDB.Login(email, password);
-
-                await MySession.SetAsync("Tuner", Tuners);
-                navigationManager.NavigateTo("/Chatsss");
-            }
-            else
+            // Use the new validation method
+            if(!ValidatePassword(password))
             {
                 password = "";
                 passwordconf = "";
-                errorMsg = "Password Length Must Be 6 Characters Or Longer";
+                return; // errorMsg is already set in ValidatePassword
             }
 
+            await TunersDB.UpdatePasswordAsync(email, password);
+            Tuners = await TunersDB.Login(email, password);
+
+            await MySession.SetAsync("Tuner", Tuners);
+            navigationManager.NavigateTo("/Chatsss");
         }
         else
         {

@@ -1,8 +1,10 @@
 ﻿using Moduls;
+using Org.BouncyCastle.Bcpg;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Eventing.Reader;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -40,8 +42,19 @@ namespace DBL
             r.created_at = DateTime.Parse(row[4].ToString());
             return r;
         }
-
-        
+        public async Task<List<Reports>> GetUsersReportsAsync(int id)
+        {
+            string query = $"SELECT * FROM project12.reports WHERE reported = {id} ORDER BY created_at ";
+            List<Reports> results = (List<Reports>)await SelectAllAsync(query);
+            return results;
+        }
+        public async Task DeleteReportsListAsync(List<Reports> R)
+        {
+            foreach(Reports r in R)
+            {
+             await DeleteReport(r.id);
+            }
+        }
         public async Task<TimeSpan?> InsertGetObjAsync(Reports R)
         {
             if (!IsValidCategory(R.report))
@@ -71,7 +84,7 @@ namespace DBL
                 { "created_at", DateTime.UtcNow }
             };
 
-            t.rep_amount++;
+           
             await base.InsertGetObjAsync(fillValues);
             return null; // null = success
         }

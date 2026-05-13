@@ -14,8 +14,8 @@ namespace Moduls
         public string password { get; set; }
         public int role { get; set; }
         public int banned { get; set; }
-        public int rep_amount { get; set; }
         public DateTime created { get; set; }
+        public string picture { get; set; }
 
         public Tuners() { }
         public Tuners(int Id, string username,string email ,string password)

@@ -316,6 +316,7 @@
 
 @code {
     ReportsDB ReportDB = new ReportsDB();
+    List<Reports> Reports = new List<Reports>();
     List<Reports> Report = new List<Reports>();
     TunersDB Tune = new TunersDB();
     Tuners T = new Tuners();
@@ -348,15 +349,17 @@
         int r = await ReportDB.DeleteReport(id);
         return r != 0 && t != 0;
     }
-        
 
-    
+
+
     private async Task BanUser(int reportId, int reportedUserId)
     {
         bool success = await Ban(reportId, reportedUserId);
 
         if (success)
         {
+            Reports=await ReportDB.GetUsersReportsAsync(reportedUserId);
+            await ReportDB.DeleteReportsListAsync(Reports);
             // Remove this report from the list
             Report.RemoveAll(r => r.reported == reportedUserId);
             StateHasChanged();

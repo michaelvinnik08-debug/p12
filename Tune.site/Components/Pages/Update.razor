@@ -5,6 +5,7 @@
 @using Moduls
 @using DBL
 @inject IJSRuntime JS
+@using Microsoft.AspNetCore.Components.Forms
 
 
 <style>
@@ -25,7 +26,6 @@
         --font-family: "Inter", system-ui, sans-serif;
     }
 
-    /* Body & page */
     body, html {
         margin: 0;
         padding: 0;
@@ -47,59 +47,191 @@
         z-index: 0;
     }
 
-    /* Center the card */
-    .page-container {
+    .update-page {
         position: relative;
         min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem 1rem;
         z-index: 1;
     }
 
-    /* Card */
-    .card {
-        position: relative;
-        z-index: 2;
+    /* Header */
+    .update-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 1rem;
+        background-color: #2D1616;
+        border-bottom: 2px solid var(--primary-color);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .back-button {
+        background: none;
+        border: none;
+        color: var(--primary-color);
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        width: 40px;
+        height: 40px;
+    }
+
+        .back-button:hover {
+            background-color: rgba(255, 122, 0, 0.1);
+            border-radius: 50%;
+            transform: scale(1.1);
+        }
+
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin: 0;
+    }
+
+    /* Content */
+    .update-content {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    /* Profile Avatar Section */
+    .profile-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        padding: 2rem;
         background-color: var(--card-bg);
-        padding: 2.5rem 3rem;
         border-radius: var(--border-radius);
         box-shadow: var(--shadow);
-        width: 340px;
-        max-width: 90vw;
-        text-align: center;
     }
 
-    /* Titles */
-    h1.hero-title {
-        margin-bottom: 1.5rem;
-        font-weight: 900;
+    .avatar-container {
+        position: relative;
+        width: 120px;
+        height: 120px;
+    }
+
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color), #FF9A00);
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-size: 2.5rem;
-        color: var(--primary-color);
-        text-shadow: 0 0 12px var(--primary-color);
+        font-weight: bold;
+        color: white;
+        text-transform: uppercase;
+        box-shadow: 0 6px 18px rgba(255,122,0,0.35);
+        border: 3px solid #2D1616;
+        overflow: hidden;
+        position: relative;
     }
 
-    h3 {
-        font-weight: 500;
-        margin-bottom: 0.3rem;
-        text-align: left;
+    .profile-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .edit-avatar-btn {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        border: 3px solid #2D1616;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+        .edit-avatar-btn:hover {
+            background: var(--primary-hover);
+            transform: scale(1.1);
+        }
+
+        .edit-avatar-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: white;
+        }
+
+    .file-input-hidden {
+        display: none;
+    }
+
+    .profile-name {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+
+    .profile-email {
+        font-size: 0.95rem;
         color: var(--muted-text);
     }
 
-    /* Inputs */
+    .profile-date {
+        font-size: 0.85rem;
+        color: var(--primary-color);
+    }
+
+    /* Update Sections */
+    .update-section {
+        background-color: var(--card-bg);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .section-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    label {
+        display: block;
+        font-weight: 500;
+        color: var(--muted-text);
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+
     input[type="text"], input[type="email"], input[type="password"] {
         width: 100%;
-        padding: 0.7rem 0.85rem;
-        margin-bottom: 1.3rem;
-        border-radius: var(--border-radius);
+        padding: 0.75rem;
+        border-radius: 8px;
         border: 1px solid var(--input-border);
         background-color: var(--input-bg);
         color: var(--text-color);
-        font-size: 1.05rem;
+        font-size: 1rem;
         outline: none;
         box-shadow: inset 0 0 5px rgba(0,0,0,0.7);
         transition: 0.3s;
+        box-sizing: border-box;
     }
 
     input:focus {
@@ -108,33 +240,50 @@
         background-color: #412e1a;
     }
 
-    /* Buttons */
-    button {
+    .update-button {
         width: 100%;
         background-color: var(--primary-color);
         border: none;
         color: white;
-        font-weight: 700;
+        font-weight: 600;
         padding: 0.75rem 1rem;
-        margin-bottom: 1rem;
-        border-radius: var(--border-radius);
+        border-radius: 8px;
         cursor: pointer;
-        font-size: 1.1rem;
+        font-size: 1rem;
         box-shadow: 0 0 15px var(--primary-color);
         transition: 0.3s;
     }
 
-        button:hover {
+        .update-button:hover {
             background-color: var(--primary-hover);
             box-shadow: 0 0 20px var(--primary-hover);
+            transform: translateY(-2px);
         }
 
-    /* Message */
+        .update-button:active {
+            transform: translateY(0);
+        }
+
     .message {
-        margin-bottom: 1rem;
+        margin-top: 0.75rem;
+        padding: 0.75rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-align: center;
+        min-height: 1rem;
+    }
+
+    .message.error {
+        background-color: rgba(233, 78, 119, 0.2);
         color: var(--accent-color);
-        font-weight: 600;
-        min-height: 1.2rem;
+        border: 1px solid var(--accent-color);
+    }
+
+    .message.success {
+        background-color: rgba(80, 200, 80, 0.2);
+        color: #7ecb7e;
+        border: 1px solid #4a9e4a;
     }
 
     /* Music Notes */
@@ -188,31 +337,36 @@
         }
     }
 
-    .back-button {
-        background: none;
-        border: none;
-        color: #FF7A00;
-        font-size: 1.5rem;
-        cursor: pointer;
-        padding: 0.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s;
-        width: 40px;
-        height: 40px;
-         top: 0;
+    @@media (max-width: 768px) {
+        .update-content {
+            padding: 1.5rem 1rem;
+        }
+
+        .avatar-container {
+            width: 100px;
+            height: 100px;
+        }
+
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            font-size: 2rem;
+        }
+
+        .profile-section {
+            padding: 1.5rem;
+        }
+
+        .edit-avatar-btn {
+            width: 32px;
+            height: 32px;
+        }
+
+            .edit-avatar-btn svg {
+                width: 14px;
+                height: 14px;
+            }
     }
-
-        .back-button:hover {
-            background-color: rgba(255, 122, 0, 0.1);
-            border-radius: 50%;
-            transform: scale(1.1);
-        }
-
-        .back-button:active {
-            transform: scale(0.95);
-        }
 </style>
 
 <script>
@@ -315,24 +469,75 @@
 
 
 <div class="page-background"></div>
-<button class="back-button" @onclick="GoBack">
-        ←
-    </button>
-<div class="page-container">
-    <div class="card">
-        <h1 class="hero-title">Update</h1>
 
-        <h3>Enter Username</h3>
-        <input type="text" @bind-value='username' />
+<div class="update-page">
+    <div class="update-header">
+        <button class="back-button" @onclick="GoBack">←</button>
+        <h1 class="page-title">Profile Settings</h1>
+        <div style="width: 40px;"></div> @* Spacer for centering *@
+    </div>
 
-        <h3>Enter Password</h3>
-        <input type="password" @bind-value='password' />
+    <div class="update-content">
+        <!-- Profile Display Section -->
+        <div class="profile-section">
+            <div class="avatar-container">
+                <div class="profile-avatar">
+                    @if (profilePictureUrl != null)
+                    {
+                        <img src="@profilePictureUrl" alt="Profile Picture" />
+                    }
+                    else
+                    {
+                        @GetInitials(tuners?.username ?? "")
+                    }
+                </div>
+                <button class="edit-avatar-btn" @onclick="TriggerFileInput" title="Change profile picture">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                    </svg>
+                </button>
+                <InputFile OnChange="HandleFileSelected" class="file-input-hidden" @ref="fileInput" accept="image/*" />
+            </div>
+            <div class="profile-name">@tuners?.username</div>
+            <div class="profile-email">@tuners?.email</div>
+            <div class="profile-date">Member since @tuners?.created.ToString("dd/MM/yyyy")</div>
+            @if (!string.IsNullOrEmpty(pictureMessage))
+            {
+                <div class="message @(pictureSuccess ? "success" : "error")">@pictureMessage</div>
+            }
+        </div>
 
-        <h3>Confirm Password</h3>
-        <input type="password" @bind-value='password1' />
+        <!-- Update Username Section -->
+        <div class="update-section">
+            <h2 class="section-title">Update Username</h2>
+            <div class="form-group">
+                <label>New Username</label>
+                <input type="text" @bind-value="newUsername" placeholder="Enter new username" />
+            </div>
+            <button class="update-button" @onclick="UpdateUsername">Update Username</button>
+            @if (!string.IsNullOrEmpty(usernameMessage))
+            {
+                <div class="message @(usernameSuccess ? "success" : "error")">@usernameMessage</div>
+            }
+        </div>
 
-        <button @onclick="update">Update</button>
-        <div class="message">@message</div>
+        <!-- Update Password Section -->
+        <div class="update-section">
+            <h2 class="section-title">Update Password</h2>
+            <div class="form-group">
+                <label>New Password</label>
+                <input type="password" @bind-value="newPassword" placeholder="Enter new password" />
+            </div>
+            <div class="form-group">
+                <label>Confirm Password</label>
+                <input type="password" @bind-value="confirmPassword" placeholder="Confirm new password" />
+            </div>
+            <button class="update-button" @onclick="UpdatePassword">Update Password</button>
+            @if (!string.IsNullOrEmpty(passwordMessage))
+            {
+                <div class="message @(passwordSuccess ? "success" : "error")">@passwordMessage</div>
+            }
+        </div>
     </div>
 </div>
 
@@ -341,30 +546,281 @@
 
 @code {
     TunersDB T = new TunersDB();
-    string username = ""; string password = ""; string password1 = ""; string message = "";
+    Tuners tuners = new Tuners();
+    
+    string newUsername = "";
+    string newPassword = "";
+    string confirmPassword = "";
+    
+    string usernameMessage = "";
+    bool usernameSuccess = false;
+    
+    string passwordMessage = "";
+    bool passwordSuccess = false;
 
-    async Task update()
+    string pictureMessage = "";
+    bool pictureSuccess = false;
+
+    string profilePictureUrl = null;
+    InputFile fileInput;
+
+    protected override async Task OnInitializedAsync()
     {
         var result = await MySession.GetAsync<Tuners>("Tuner");
         if (result.Success)
         {
-            Tuners tuners = result.Value;
-            if (password == password1)
-            {
-                if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
-                {
-                    await T.UpdateAsync(tuners, username, password);
-
-                    tuners.username = username;
-                    tuners.password = password;
-                    await MySession.SetAsync("Tuner",tuners);
-                    navigationManager.NavigateTo("/Chatsss");
-                }
-                else message = "Fill all the fields";
-            }
-            else message = "Passwords do not match!";
+            // Load full user data from database (including picture)
+            tuners = await T.SelectUserID(result.Value.Id);
+            LoadProfilePicture();
         }
-        else message = "ERROR";
+        else
+        {
+            navigationManager.NavigateTo("/");
+        }
+    }
+
+    private void LoadProfilePicture()
+    {
+        if (!string.IsNullOrEmpty(tuners?.picture))
+        {
+            // If it already has the data:image prefix, use it directly
+            if (tuners.picture.StartsWith("data:image"))
+            {
+                profilePictureUrl = tuners.picture;
+            }
+            else
+            {
+                // Otherwise, assume it's base64 and add the prefix
+                profilePictureUrl = $"data:image/jpeg;base64,{tuners.picture}";
+            }
+        }
+        else
+        {
+            profilePictureUrl = null;
+        }
+    }
+
+    private async Task TriggerFileInput()
+    {
+        await JS.InvokeVoidAsync("eval", "document.querySelector('.file-input-hidden').click()");
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        pictureMessage = "";
+        pictureSuccess = false;
+
+        var file = e.File;
+        if (file == null) return;
+
+        // Validate file size (max 5MB)
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            pictureMessage = "Image size must be less than 5MB";
+            return;
+        }
+
+        // Validate file type
+        if (!file.ContentType.StartsWith("image/"))
+        {
+            pictureMessage = "Please select a valid image file";
+            return;
+        }
+
+        try
+        {
+            pictureMessage = "Uploading...";
+            StateHasChanged();
+
+            // Read the file into a byte array
+            using var memoryStream = new MemoryStream();
+            await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).CopyToAsync(memoryStream);
+            byte[] imageBytes = memoryStream.ToArray();
+
+            // Convert to base64 string with data URI prefix
+            string base64Image = Convert.ToBase64String(imageBytes);
+            string dataUri = $"data:{file.ContentType};base64,{base64Image}";
+
+            Console.WriteLine($"Image size: {imageBytes.Length} bytes");
+            Console.WriteLine($"Data URI length: {dataUri.Length} characters");
+
+            // Update in database
+            int result = await T.UpdatePictureAsync(tuners.Id, dataUri);
+            Console.WriteLine($"Database update result: {result}");
+            
+            // Reload user from database to get updated picture
+            tuners = await T.SelectUserID(tuners.Id);
+            Console.WriteLine($"Picture loaded from DB: {tuners.picture?.Length ?? 0} characters");
+            
+            // Update session WITHOUT the picture to avoid size limits
+            var sessionTuner = new Tuners
+            {
+                Id = tuners.Id,
+                username = tuners.username,
+                email = tuners.email,
+                password = tuners.password,
+                role = tuners.role,
+                banned = tuners.banned,
+                created = tuners.created,
+                picture = null // Don't store picture in session
+            };
+            await MySession.SetAsync("Tuner", sessionTuner);
+
+            // Update display
+            LoadProfilePicture();
+            Console.WriteLine($"Profile picture URL set: {profilePictureUrl != null}");
+
+            pictureMessage = "Profile picture updated successfully!";
+            pictureSuccess = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating picture: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            pictureMessage = "Failed to update profile picture: " + ex.Message;
+            pictureSuccess = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetInitials(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username)) return "?";
+        var parts = username.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2) return $"{parts[0][0]}{parts[1][0]}";
+        return username.Length >= 2 ? username.Substring(0, 2) : username.Substring(0, 1);
+    }
+
+    private bool ValidatePassword(string pwd)
+    {
+        if (pwd.Length < 6)
+        {
+            passwordMessage = "Password must be at least 6 characters long";
+            passwordSuccess = false;
+            return false;
+        }
+
+        if (!pwd.Any(char.IsDigit))
+        {
+            passwordMessage = "Password must contain at least 1 number";
+            passwordSuccess = false;
+            return false;
+        }
+
+        if (!pwd.Any(ch => !char.IsLetterOrDigit(ch)))
+        {
+            passwordMessage = "Password must contain at least 1 special character";
+            passwordSuccess = false;
+            return false;
+        }
+
+        return true;
+    }
+
+    async Task UpdateUsername()
+    {
+        usernameMessage = "";
+        usernameSuccess = false;
+
+        if (string.IsNullOrWhiteSpace(newUsername))
+        {
+            usernameMessage = "Please enter a username";
+            return;
+        }
+
+        if (newUsername.Length < 2)
+        {
+            usernameMessage = "Username must be at least 2 characters long";
+            return;
+        }
+
+        try
+        {
+            await T.UpdateUsernameAsync(tuners.Id, newUsername);
+            tuners.username = newUsername;
+            
+            // Update session WITHOUT the picture to avoid size limits
+            var sessionTuner = new Tuners
+            {
+                Id = tuners.Id,
+                username = tuners.username,
+                email = tuners.email,
+                password = tuners.password,
+                role = tuners.role,
+                banned = tuners.banned,
+                created = tuners.created,
+                picture = null // Don't store picture in session
+            };
+            await MySession.SetAsync("Tuner", sessionTuner);
+            
+            usernameMessage = "Username updated successfully!";
+            usernameSuccess = true;
+            newUsername = "";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            usernameMessage = "Failed to update username: " + ex.Message;
+            usernameSuccess = false;
+        }
+    }
+
+    async Task UpdatePassword()
+    {
+        passwordMessage = "";
+        passwordSuccess = false;
+
+        if (string.IsNullOrWhiteSpace(newPassword) || string.IsNullOrWhiteSpace(confirmPassword))
+        {
+            passwordMessage = "Please fill in all password fields";
+            return;
+        }
+
+        if (newPassword != confirmPassword)
+        {
+            passwordMessage = "Passwords do not match!";
+            confirmPassword = "";
+            return;
+        }
+
+        if (!ValidatePassword(newPassword))
+        {
+            newPassword = "";
+            confirmPassword = "";
+            return;
+        }
+
+        try
+        {
+            await T.UpdatePasswordByIdAsync(tuners.Id, newPassword);
+            tuners.password = newPassword;
+            
+            // Update session WITHOUT the picture to avoid size limits
+            var sessionTuner = new Tuners
+            {
+                Id = tuners.Id,
+                username = tuners.username,
+                email = tuners.email,
+                password = tuners.password,
+                role = tuners.role,
+                banned = tuners.banned,
+                created = tuners.created,
+                picture = null // Don't store picture in session
+            };
+            await MySession.SetAsync("Tuner", sessionTuner);
+            
+            passwordMessage = "Password updated successfully!";
+            passwordSuccess = true;
+            newPassword = "";
+            confirmPassword = "";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            passwordMessage = "Failed to update password: " + ex.Message;
+            passwordSuccess = false;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -372,6 +828,7 @@
         if (firstRender)
             await JS.InvokeVoidAsync("startMusicNotesAnimation");
     }
+    
     async Task GoBack()
     {
         navigationManager.NavigateTo("/Chatsss");

@@ -83,7 +83,15 @@ namespace DBL
             t.role = int.Parse(rows[4].ToString());
             t.banned = int.Parse(rows[5].ToString());
             t.created = DateTime.Parse(rows[6].ToString());
-            t.rep_amount = int.Parse(rows[7].ToString());
+            // Handle picture column (index 7) - it might be null or DBNull
+            if (rows.Length > 7 && rows[7] != null && rows[7] != DBNull.Value)
+            {
+                t.picture = rows[7].ToString();
+            }
+            else
+            {
+                t.picture = null;
+            }
             return t;
         }
         public async Task<int> UpdateAsync(Tuners T,string username,string password )
@@ -101,6 +109,30 @@ namespace DBL
             Dictionary<string, object> values = new Dictionary<string, object>();
             values.Add("password", password);
             filter.Add("email", email);
+            return await base.UpdateAsync(values, filter);
+        }
+        public async Task<int> UpdateUsernameAsync(int id, string username)
+        {
+            Dictionary<string, object> filter = new Dictionary<string, object>();
+            Dictionary<string, object> values = new Dictionary<string, object>();
+            values.Add("name", username);
+            filter.Add("id", id);
+            return await base.UpdateAsync(values, filter);
+        }
+        public async Task<int> UpdatePasswordByIdAsync(int id, string password)
+        {
+            Dictionary<string, object> filter = new Dictionary<string, object>();
+            Dictionary<string, object> values = new Dictionary<string, object>();
+            values.Add("password", password);
+            filter.Add("id", id);
+            return await base.UpdateAsync(values, filter);
+        }
+        public async Task<int> UpdatePictureAsync(int id, string picture)
+        {
+            Dictionary<string, object> filter = new Dictionary<string, object>();
+            Dictionary<string, object> values = new Dictionary<string, object>();
+            values.Add("picture", picture);
+            filter.Add("id", id);
             return await base.UpdateAsync(values, filter);
         }
         public async Task<int> Bannedornot(int ban, int Id)
