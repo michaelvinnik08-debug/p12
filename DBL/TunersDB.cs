@@ -21,14 +21,15 @@ namespace DBL
             return "id";
         }
         protected override async Task<Tuners> CreateModelAsync(object[] rows)
+        
         {
             Tuners t = new Tuners();
             t.Id = int.Parse(rows[0].ToString());
             t.username = rows[1].ToString();
             t.email = rows[2].ToString();
             t.password = rows[3].ToString();
-            t.role = int.Parse(rows[4].ToString());
-            t.banned = int.Parse(rows[5].ToString());
+            t.role = int.Parse(rows[4].ToString());  
+            t.bantime = DateTime.Parse(rows[5].ToString());
             t.created = DateTime.Parse(rows[6].ToString());
 
             if (rows.Length > 7 && rows[7] != null && rows[7] != DBNull.Value)
@@ -74,13 +75,12 @@ namespace DBL
             List<Tuners> T = await SelectAllAsync(filter);
             return T[0];
         }
-        public async Task<List<Tuners>> SelectUsersByName(string name)
+        public async Task<List<Tuners>> SelectUsersByEmail(string email)
         {
-
             Dictionary<string, object> filter = new Dictionary<string, object>();
-            filter.Add("name", name);
+            filter.Add("email", email);
             List<Tuners> T = await SelectAllAsync(filter);
-            return  T;
+            return T;
         }
         public async Task<Tuners> Reg(string username,string email, string password)
         {
@@ -98,16 +98,6 @@ namespace DBL
                 return (Tuners)await base.InsertGetObjAsync(fillValues);
             }
             else return null;
-        }
-        
-        public async Task<int> UpdateAsync(Tuners T,string username,string password )
-        {
-                Dictionary<string, object> filter = new Dictionary<string, object>();
-                Dictionary<string, object> values = new Dictionary<string, object>();
-                values.Add("name", username);
-                values.Add("password", password);
-                filter.Add("id", T.Id);
-            return await base.UpdateAsync( values,filter);
         }
         public async Task<int> UpdatePasswordAsync(string email, string password)
         {
@@ -145,12 +135,12 @@ namespace DBL
             filter.Add("id", id);
             return await base.UpdateAsync(values, filter);
         }
-        public async Task<int> Bannedornot(int ban, int Id)
+        public async Task<int> SetBanTime(int userId, DateTime banUntil)
         {
             Dictionary<string, object> filter = new Dictionary<string, object>();
             Dictionary<string, object> values = new Dictionary<string, object>();
-            values.Add("banned", ban);
-            filter.Add("id", Id);
+            values.Add("bantime", banUntil);
+            filter.Add("id", userId);
             return await base.UpdateAsync(values,filter); 
         }
         public async Task<Tuners> Login(string email,string password)

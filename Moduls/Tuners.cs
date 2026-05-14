@@ -13,10 +13,10 @@ namespace Moduls
         public string email { get; set; }
         public string password { get; set; }
         public int role { get; set; }
-        public int banned { get; set; }
+        public DateTime bantime { get; set; }
         public DateTime created { get; set; }
         public string picture { get; set; }
-
+       
         public Tuners() { }
         public Tuners(int Id, string username,string email ,string password,string picture)
         {

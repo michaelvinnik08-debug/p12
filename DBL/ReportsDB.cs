@@ -63,7 +63,7 @@ namespace DBL
             TunersDB s = new TunersDB();
             Tuners t = await s.SelectUserID(R.reported);
 
-            if (t == null || t.banned != 0)
+            if (t == null || t.bantime > DateTime.UtcNow)
                 return null;
 
             // Check cooldown — has this reporter already reported this user in the last 24h?

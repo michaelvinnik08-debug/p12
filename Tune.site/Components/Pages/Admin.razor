@@ -41,13 +41,35 @@
                     </div>
 
                     <div class="report-actions">
-                        <button class="btn-ban" @onclick="() => BanUser(R.id, R.reported)">
+                        <button class="btn-ban" @onclick="() => ShowBanOptions(R.id, R.reported)">
                             🚫 Ban User
                         </button>
                         <button class="btn-dismiss" @onclick="() => DismissReport(R.id)">
                             ✓ Dismiss
                         </button>
                     </div>
+
+                    @* Ban duration options (shown when ban button clicked) *@
+                    @if (selectedReportId == R.id && showBanDurations)
+                    {
+                        <div class="ban-duration-options">
+                            <p class="ban-prompt">Select ban duration:</p>
+                            <div class="duration-buttons">
+                                <button class="duration-btn" @onclick="() => BanUser(R.id, R.reported, TimeSpan.FromDays(1))">
+                                    1 Day
+                                </button>
+                                <button class="duration-btn" @onclick="() => BanUser(R.id, R.reported, TimeSpan.FromDays(7))">
+                                    1 Week
+                                </button>
+                                <button class="duration-btn" @onclick="() => BanUser(R.id, R.reported, TimeSpan.FromDays(30))">
+                                    1 Month
+                                </button>
+                                <button class="duration-btn duration-forever" @onclick="() => BanUser(R.id, R.reported, TimeSpan.FromDays(36500))">
+                                    Forever
+                                </button>
+                            </div>
+                        </div>
+                    }
                 </div>
             }
         }
@@ -260,6 +282,71 @@
             transform: translateY(0);
         }
 
+    /* Ban Duration Options */
+    .ban-duration-options {
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: #2D1616;
+        border-radius: 8px;
+        border: 2px solid #FF7A00;
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .ban-prompt {
+        color: #FF7A00;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        text-align: center;
+    }
+
+    .duration-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    .duration-btn {
+        padding: 0.75rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        background-color: #FF7A00;
+        color: white;
+        transition: all 0.2s;
+    }
+
+        .duration-btn:hover {
+            background-color: #FF9A00;
+            transform: scale(1.05);
+        }
+
+        .duration-btn:active {
+            transform: scale(0.98);
+        }
+
+    .duration-forever {
+        background-color: #dc3545;
+        grid-column: span 2;
+    }
+
+        .duration-forever:hover {
+            background-color: #c82333;
+        }
+
     /* Empty State */
     .empty-state {
         text-align: center;
@@ -311,6 +398,14 @@
             .report-actions button {
                 width: 100%;
             }
+
+        .duration-buttons {
+            grid-template-columns: 1fr;
+        }
+
+        .duration-forever {
+            grid-column: span 1;
+        }
     }
 </style>
 
@@ -320,6 +415,10 @@
     List<Reports> Report = new List<Reports>();
     TunersDB Tune = new TunersDB();
     Tuners T = new Tuners();
+    
+    int selectedReportId = -1;
+    bool showBanDurations = false;
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -343,18 +442,24 @@
         }
     }
 
-    private async Task<bool> Ban(int id, int reported)
+    private void ShowBanOptions(int reportId, int reportedUserId)
     {
-        int t = await Tune.Bannedornot(1, reported);
-        int r = await ReportDB.DeleteReport(id);
+        selectedReportId = reportId;
+        showBanDurations = !showBanDurations;
+        StateHasChanged();
+    }
+
+    private async Task<bool> Ban(int reportId, int reportedUserId, TimeSpan duration)
+    {
+        DateTime banUntil = DateTime.Now.Add(duration);
+        int t = await Tune.SetBanTime(reportedUserId, banUntil);
+        int r = await ReportDB.DeleteReport(reportId);
         return r != 0 && t != 0;
     }
 
-
-
-    private async Task BanUser(int reportId, int reportedUserId)
+    private async Task BanUser(int reportId, int reportedUserId, TimeSpan duration)
     {
-        bool success = await Ban(reportId, reportedUserId);
+        bool success = await Ban(reportId, reportedUserId, duration);
 
         if (success)
         {
@@ -362,9 +467,12 @@
             await ReportDB.DeleteReportsListAsync(Reports);
             // Remove this report from the list
             Report.RemoveAll(r => r.reported == reportedUserId);
+            showBanDurations = false;
+            selectedReportId = -1;
             StateHasChanged();
         }
     }
+    
     private async Task DismissReport(int reportId)
     {
         int result = await ReportDB.DeleteReport(reportId);

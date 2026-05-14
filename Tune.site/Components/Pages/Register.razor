@@ -25,7 +25,6 @@
         --font-family: "Inter", system-ui, sans-serif;
     }
 
-    /* Body & page */
     body, html {
         margin: 0;
         padding: 0;
@@ -34,7 +33,6 @@
         overflow-x: hidden;
     }
 
-    /* Gradient background animation */
     .page-background {
         position: fixed;
         top: 0;
@@ -45,6 +43,12 @@
         background-size: 300% 300%;
         animation: bgFlow 20s ease-in-out infinite;
         z-index: 0;
+    }
+
+    @@keyframes bgFlow {
+        0%   { background-position: 0% 0%; }
+        50%  { background-position: 100% 100%; }
+        100% { background-position: 0% 0%; }
     }
 
     .register-page {
@@ -59,7 +63,6 @@
         box-sizing: border-box;
     }
 
-    /* Card */
     .card {
         position: relative;
         z-index: 2;
@@ -70,29 +73,34 @@
         width: 340px;
         max-width: 90vw;
         text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
     }
 
-    /* Titles */
     h1.hero-title {
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
         font-weight: 900;
         font-size: 2.5rem;
         color: var(--primary-color);
         text-shadow: 0 0 12px var(--primary-color);
     }
 
-    h3 {
-        font-weight: 500;
+    label {
+        font-weight: bold;
+        color: var(--muted-text);
+        display: block;
         margin-bottom: 0.3rem;
         text-align: left;
-        color: var(--muted-text);
     }
 
-    /* Inputs */
-    input[type="text"], input[type="email"], input[type="password"] {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"] {
         width: 100%;
         padding: 0.7rem 0.85rem;
-        margin-bottom: 1.3rem;
+        margin-bottom: 0.8rem;
         border-radius: var(--border-radius);
         border: 1px solid var(--input-border);
         background-color: var(--input-bg);
@@ -101,6 +109,7 @@
         outline: none;
         box-shadow: inset 0 0 5px rgba(0,0,0,0.7);
         transition: 0.3s;
+        box-sizing: border-box;
     }
 
     input:focus {
@@ -109,13 +118,12 @@
         background-color: #412e1a;
     }
 
-    /* Buttons */
     button {
         width: 100%;
         padding: 0.7rem;
         border: none;
         border-radius: 6px;
-        margin-bottom: 1rem;
+        margin-bottom: 0.6rem;
         cursor: pointer;
         font-size: 1rem;
         font-weight: bold;
@@ -123,40 +131,93 @@
         transition: background 0.3s, box-shadow 0.3s;
     }
 
-    .register-btn {
+    .primary-btn {
         background: var(--primary-color);
         color: white;
         box-shadow: 0 0 10px var(--primary-color);
     }
 
-        .register-btn:hover {
+        .primary-btn:hover {
             background: #ff8f2d;
             box-shadow: 0 0 20px #ff8f2d;
         }
 
-    .login-btn {
+    .secondary-btn {
         background: white;
-        width:100%;
         border: 2px solid var(--primary-color);
         color: var(--primary-color);
         box-shadow: 0 0 10px var(--primary-color);
     }
 
-        .login-btn:hover {
+        .secondary-btn:hover {
             background: var(--primary-color);
             color: white;
             box-shadow: 0 0 20px var(--primary-color);
         }
 
-    /* Message */
-    .message {
-        margin-bottom: 1rem;
+    .error-msg {
         color: var(--accent-color);
         font-weight: 600;
         min-height: 1.2rem;
+        font-size: 0.9rem;
+        text-align: center;
     }
 
-    /* Floating Notes */
+    .card p {
+        color: var(--muted-text);
+        font-size: 0.95rem;
+        margin: 0 0 0.5rem 0;
+    }
+
+        .card p strong {
+            color: var(--primary-color);
+        }
+
+    /* Picture upload area */
+    .picture-upload {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 0.8rem;
+    }
+
+    .avatar-preview {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--primary-color);
+        box-shadow: 0 0 10px var(--primary-color);
+    }
+
+    .avatar-placeholder {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: var(--input-bg);
+        border: 2px dashed var(--input-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted-text);
+        font-size: 2rem;
+    }
+
+    .upload-label {
+        cursor: pointer;
+        color: var(--primary-color);
+        font-size: 0.9rem;
+        font-weight: bold;
+        text-decoration: underline;
+        text-align: center;
+    }
+
+        .upload-label:hover {
+            color: var(--primary-hover);
+        }
+
+    /* Music notes */
     .music-note {
         position: fixed;
         pointer-events: none;
@@ -172,48 +233,26 @@
     }
 
     @@keyframes floatMove {
-        0% {
-            transform: translate(0, 0) rotate(0deg);
-            opacity: 1;
-        }
-
-        70% {
-            opacity: 1;
-        }
-
-        100% {
-            transform: translate(var(--move-x), var(--move-y)) rotate(360deg);
-            opacity: 0;
-        }
+        0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+        70%  { opacity: 1; }
+        100% { transform: translate(var(--move-x), var(--move-y)) rotate(360deg); opacity: 0; }
     }
 
     @@keyframes pulseGlow {
-        0% {
-            filter: drop-shadow(0 0 2px rgba(255, 140, 0, 0.4));
-        }
-
-        50% {
-            filter: drop-shadow(0 0 12px rgba(255, 140, 0, 0.85));
-        }
-
-        100% {
-            filter: drop-shadow(0 0 2px rgba(255, 140, 0, 0.4));
-        }
+        0%   { filter: drop-shadow(0 0 2px rgba(255, 140, 0, 0.4)); }
+        50%  { filter: drop-shadow(0 0 12px rgba(255, 140, 0, 0.85)); }
+        100% { filter: drop-shadow(0 0 2px rgba(255, 140, 0, 0.4)); }
     }
 </style>
 
 <script>
-
-    // --- GLOBAL STATE (prevents duplication on page reloads) ---
     if (!window.__musicNotesInitialized) {
         window.__musicNotesInitialized = true;
-        window.__activeNotes = new Set();       // all active notes
-        window.__spawnTimerIds = [];            // timers for respawning notes
+        window.__activeNotes = new Set();
+        window.__spawnTimerIds = [];
     }
 
     window.startMusicNotesAnimation = () => {
-
-        // Clear existing notes (visual cleanup only — timers cleared in stop fn)
         document.querySelectorAll(".music-note").forEach(n => n.remove());
         window.__activeNotes.clear();
 
@@ -222,143 +261,280 @@
         const animationDurationRange = [4000, 8000];
         const noteSizeRange = [14, 30];
 
-        function randomRange(min, max) {
-            return Math.random() * (max - min) + min;
-        }
-
+        function randomRange(min, max) { return Math.random() * (max - min) + min; }
         function randomMovement(min, max, minAbs) {
             let v;
-            do { v = randomRange(min, max); }
-            while (Math.abs(v) < minAbs);
+            do { v = randomRange(min, max); } while (Math.abs(v) < minAbs);
             return v;
         }
 
-        // --- SPAWN A SINGLE NOTE ---
         function spawnNote() {
             if (window.__activeNotes.size >= TOTAL_NOTES) return;
-
             const note = document.createElement("div");
             note.classList.add("music-note");
             window.__activeNotes.add(note);
-
             note.textContent = noteSymbols[Math.floor(Math.random() * noteSymbols.length)];
-
             const size = randomRange(noteSizeRange[0], noteSizeRange[1]);
             note.style.setProperty("--note-size", size + "px");
-
             note.style.left = randomRange(0, window.innerWidth) + "px";
             note.style.top = randomRange(0, window.innerHeight) + "px";
-
             const moveX = randomMovement(-150, 150, 40);
             const moveY = randomMovement(-150, 150, 40);
-
             note.style.setProperty("--move-x", moveX + "px");
             note.style.setProperty("--move-y", moveY + "px");
-
             const duration = randomRange(animationDurationRange[0], animationDurationRange[1]);
             const glowDelay = randomRange(0, 1500);
-
             note.style.animationDuration = `${duration}ms, 2000ms`;
             note.style.animationDelay = `0ms, ${glowDelay}ms`;
-
             document.body.appendChild(note);
-
             const timeoutId = setTimeout(() => {
                 window.__activeNotes.delete(note);
                 note.remove();
                 spawnNote();
             }, duration + 50);
-
             window.__spawnTimerIds.push(timeoutId);
         }
 
-        // Create initial set of notes
-        for (let i = 0; i < TOTAL_NOTES; i++) {
-            spawnNote();
-        }
+        for (let i = 0; i < TOTAL_NOTES; i++) spawnNote();
     };
 
-    // --- STOP & CLEAN EVERYTHING COMPLETELY ---
     window.stopMusicNotesAnimation = () => {
-
-        // Remove note elements
         window.__activeNotes.forEach(n => n.remove());
         window.__activeNotes.clear();
-
-        // Clear all timers
-        for (let id of window.__spawnTimerIds) {
-            clearTimeout(id);
-        }
-
+        for (let id of window.__spawnTimerIds) clearTimeout(id);
         window.__spawnTimerIds = [];
     };
 
-    // Stop automatically when leaving page
-    window.addEventListener("beforeunload", () => {
-        window.stopMusicNotesAnimation();
-    });
+    window.addEventListener("beforeunload", () => window.stopMusicNotesAnimation());
 
+    // Read a file input as base64 data URL
+    window.readFileAsBase64 = (inputId) => {
+        return new Promise((resolve, reject) => {
+            const input = document.getElementById(inputId);
+            if (!input || !input.files || input.files.length === 0) {
+                resolve(null);
+                return;
+            }
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+        });
+    };
 </script>
-
-
 
 <div class="page-background"></div>
 <div class="register-page">
     <div class="card">
         <h1 class="hero-title">Register</h1>
 
-        <h3>Enter Username</h3>
-        <input type="text" @bind-value="username" placeholder="Username" autocomplete="username" />
+        @if (step == 1)
+        {
+            <label>Email</label>
+            <input type="email" @bind-value="email" placeholder="Enter your email" autocomplete="email" />
+            <button class="primary-btn" @onclick="SendEmail">Send Code</button>
+            <button class="secondary-btn" @onclick="GoToLogin">Back To Login</button>
+        }
 
-        <h3>Enter Email</h3>
-        <input type="email" @bind-value="email" placeholder="Email" autocomplete="email" />
+        @if (step == 2)
+        {
+            <p>We sent a code to <strong>@email</strong></p>
+            <label>Enter Code</label>
+            <input type="number" @bind-value="userCode" placeholder="Enter 6-digit code" />
+            <button class="primary-btn" @onclick="CheckCode">Verify</button>
+            <button class="secondary-btn" @onclick="SendEmail">Resend Code</button>
+        }
 
-        <h3>Enter Password</h3>
-        <input type="password" @bind-value="password" placeholder="Password" autocomplete="new-password" />
+        @if (step == 3)
+        {
+            <label>Username</label>
+            <input type="text" @bind-value="username" placeholder="Choose a username" autocomplete="username" />
 
-        <button class="register-btn" @onclick="Registar" >Register</button>
-        <button class="login-btn" @onclick="Login">Back To Login</button>
-        <div class="message">@message</div>
+            <label>Password</label>
+            <input type="password" @bind-value="password" placeholder="Create a password" autocomplete="new-password" />
+
+            <label>Confirm Password</label>
+            <input type="password" @bind-value="passwordconf" placeholder="Confirm your password" autocomplete="new-password" />
+
+            <label>Profile Picture (optional)</label>
+            <div class="picture-upload">
+                @if (!string.IsNullOrEmpty(picturePreview))
+                {
+                    <img class="avatar-preview" src="@picturePreview" alt="Preview" />
+                }
+                else
+                {
+                    <div class="avatar-placeholder">&#9835;</div>
+                }
+                <label class="upload-label" for="picInput">
+                    @(string.IsNullOrEmpty(picturePreview) ? "Choose a picture" : "Change picture")
+                </label>
+                <InputFile id="picInput" OnChange="OnPictureSelected" accept="image/*" style="display:none" />
+            </div>
+
+            <button class="primary-btn" @onclick="CreateAccount">Create Account</button>
+        }
+
+        <p class="error-msg">@errorMsg</p>
     </div>
 </div>
 
 @code {
-    string username = "";
+    int step = 1;
+    int confnum = 0;
     string email = "";
+    int userCode = 0;
+    string username = "";
     string password = "";
-    string message = "";
+    string passwordconf = "";
+    string errorMsg = "";
+    string picturePreview = "";   // base64 data URL shown in <img>
+    string pictureBase64 = "";    // base64 string saved to DB (may be null)
 
-    public async Task Registar()
-    {
-        TunersDB f = new TunersDB();
-
-        if (email!=null)
-        {
-            Tuners tuners =await f.Reg(username, email, password);
-            if(tuners==null)
-            {
-                message = "email already in use,try another one";
-                email = "";
-            }
-            else{
-                message = "Registered!";
-                Thread.Sleep(2000);
-                await MySession.SetAsync("Tuner", tuners);
-                navigationManager.NavigateTo("/Chatsss");
-            }
-        }
-
-        else
-            message = "The email is required!";
-    }
-    void Login()
-    {
-        navigationManager.NavigateTo("/");
-    }
+    TunersDB TunersDB = new TunersDB();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
             await JS.InvokeVoidAsync("startMusicNotesAnimation");
+    }
+
+    public async Task SendEmail()
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            errorMsg = "Please enter your email.";
+            return;
+        }
+
+        List<string> existingEmails = await TunersDB.GetAllEmailsAsync();
+        if (existingEmails.Contains(email))
+        {
+            errorMsg = "This email is already in use.";
+            return;
+        }
+
+        try
+        {
+            Random rnd = new Random();
+            confnum = rnd.Next(100000, 999999);
+            await EmailService.SendMessage(email, confnum);
+            step = 2;
+            errorMsg = "";
+        }
+        catch (Exception ex)
+        {
+            errorMsg = "Failed to send email: " + ex.Message;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    public async Task CheckCode()
+    {
+        if (userCode == confnum)
+        {
+            step = 3;
+            errorMsg = "";
+            StateHasChanged();
+        }
+        else
+        {
+            errorMsg = "Wrong code, try again!";
+            StateHasChanged();
+        }
+    }
+
+    // ── Step 3: handle picture file selection ──
+    private async Task OnPictureSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        // Limit to 4 MB
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            errorMsg = "Image must be smaller than 4 MB.";
+            return;
+        }
+
+        using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+        using var ms = new System.IO.MemoryStream();
+        await stream.CopyToAsync(ms);
+        byte[] bytes = ms.ToArray();
+        string base64 = Convert.ToBase64String(bytes);
+        string mimeType = file.ContentType;
+
+        pictureBase64 = $"data:{mimeType};base64,{base64}";
+        picturePreview = pictureBase64;
+        errorMsg = "";
+        StateHasChanged();
+    }
+
+    private bool ValidatePassword(string pwd)
+    {
+        if (pwd.Length < 6)
+        {
+            errorMsg = "Password must be at least 6 characters long.";
+            return false;
+        }
+        if (!pwd.Any(char.IsDigit))
+        {
+            errorMsg = "Password must contain at least 1 number.";
+            return false;
+        }
+        if (!pwd.Any(ch => !char.IsLetterOrDigit(ch)))
+        {
+            errorMsg = "Password must contain at least 1 special character.";
+            return false;
+        }
+        return true;
+    }
+
+    public async Task CreateAccount()
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            errorMsg = "Username is required.";
+            return;
+        }
+
+        if (password != passwordconf)
+        {
+            passwordconf = "";
+            errorMsg = "Confirm Password must match Password.";
+            return;
+        }
+
+        if (!ValidatePassword(password))
+        {
+            password = "";
+            passwordconf = "";
+            return;
+        }
+
+        // Register the user (no picture yet)
+        Tuners tuner = await TunersDB.Reg(username, email, password);
+        if (tuner == null)
+        {
+            errorMsg = "Email already in use — please go back and try another.";
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(pictureBase64))
+        {
+            await TunersDB.UpdatePictureAsync(tuner.Id, pictureBase64);
+            tuner.picture = null; // don't store large blob in session
+        }
+
+        await MySession.SetAsync("Tuner", tuner);
+        navigationManager.NavigateTo("/Chatsss");
+    }
+
+    void GoToLogin()
+    {
+        navigationManager.NavigateTo("/");
     }
 }
