@@ -336,8 +336,7 @@
     async Task Login()
     {
         TunersDB T = new TunersDB();
-        Tuners tuners = await T.Login(email, password);
-        tuners.picture = null;
+        Tuners tuners = await T.Login(email, password);  
         if (tuners != null)
         {
             if (tuners.banned == 1)
@@ -348,6 +347,7 @@
             }
             else
             {
+                tuners.picture = null;
                 await MySession.SetAsync("Tuner", tuners);
                 navigationManager.NavigateTo("/Chatsss");
             }

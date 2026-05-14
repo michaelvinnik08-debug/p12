@@ -13,6 +13,9 @@
     </button>
     <h1 class="chat-username">@other?.username</h1>
     <div class="spacer"></div>
+    <button style="width:80px; height:60px;" class="back-button" @onclick="GoBack ">Go To Profile
+        </button>
+        <div class="spacer"></div>
 </div>
 
 <div class="messages-container">
@@ -690,7 +693,15 @@
             await hubConnection.DisposeAsync();
         }
     }
-   async void GoBack()
+    async void GoToProfile()
+    {
+        await MySession.DeleteAsync("Chats");
+        Tuners targetUser =await tunersDB.SelectUserID(chats.user2);
+        targetUser.picture = null;
+        await MySession.SetAsync("Other", targetUser);
+        navigationManager.NavigateTo("/Profile");
+    }
+    async void GoBack()
     {
         await MySession.DeleteAsync("Chats");
         navigationManager.NavigateTo("/Chatsss");
