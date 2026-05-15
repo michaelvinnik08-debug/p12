@@ -890,14 +890,14 @@
         if (e.Key == "Enter") await SearchUsers(searchQuery);
     }
 
-    private async Task SearchUsers(string name)
+    private async Task SearchUsers(string email)
     {
         if (string.IsNullOrWhiteSpace(searchQuery)) return;
         isSearching = true;
         hasSearched = true;
         requestFeedback = "";
         StateHasChanged();
-        searchResults = await U.SelectUsersByEmail(name.Trim());
+        searchResults = await U.SelectUsersByEmail(email.Trim());
         isSearching = false;
         StateHasChanged();
     }

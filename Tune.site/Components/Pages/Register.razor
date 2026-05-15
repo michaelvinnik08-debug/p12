@@ -453,10 +453,10 @@
         var file = e.File;
         if (file == null) return;
 
-        // Limit to 4 MB
+        // Limit to 5 MB
         if (file.Size > 5 * 1024 * 1024)
         {
-            errorMsg = "Image must be smaller than 4 MB.";
+            errorMsg = "Image must be smaller than 5 MB.";
             return;
         }
 

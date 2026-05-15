@@ -413,7 +413,7 @@
     ReportsDB ReportDB = new ReportsDB();
     List<Reports> Reports = new List<Reports>();
     List<Reports> Report = new List<Reports>();
-    TunersDB Tune = new TunersDB();
+    TunersDB TunerDB = new TunersDB();
     Tuners T = new Tuners();
     
     int selectedReportId = -1;
@@ -452,7 +452,7 @@
     private async Task<bool> Ban(int reportId, int reportedUserId, TimeSpan duration)
     {
         DateTime banUntil = DateTime.Now.Add(duration);
-        int t = await Tune.SetBanTime(reportedUserId, banUntil);
+        int t = await TunerDB.SetBanTime(reportedUserId, banUntil);
         int r = await ReportDB.DeleteReport(reportId);
         return r != 0 && t != 0;
     }
