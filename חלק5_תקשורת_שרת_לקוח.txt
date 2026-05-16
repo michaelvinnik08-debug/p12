@@ -1,0 +1,589 @@
+חלק 5: איך הנתונים עוברים מהשרת ללקוח
+
+
+הגדרות רשת ו-Interface
+
+
+1. SignalR Hub - תקשורת בזמן אמת
+
+המערכת משתמשת ב-SignalR לתקשורת דו-כיוונית בזמן אמת בין השרת ללקוח. זה מאפשר שליחת הודעות מיידית בין משתמשים.
+
+הגדרת ה-Hub ב-Program.cs:
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
+builder.Services.AddHttpClient();
+
+builder.Services.AddScoped<MessagesDB>();
+
+var app = builder.Build();
+
+app.MapHub<Tune.site.Hubs.ChatHub>("/chatHub");
+
+app.UseStaticFiles();
+app.UseAntiforgery();
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
+
+app.Run();
+
+הסבר:
+- MapHub מגדיר נקודת קצה (endpoint) ב-URL "/chatHub"
+- לקוחות יכולים להתחבר לנקודה זו ולשלוח/לקבל הודעות בזמן אמת
+- AddScoped<MessagesDB> רושם את שירות הגישה למסד הנתונים
+
+
+2. מימוש ChatHub
+
+namespace Tune.site.Hubs
+{
+    public class ChatHub : Hub
+    {
+        private readonly MessagesDB _messagesDB;
+
+        public ChatHub(MessagesDB messagesDB)
+        {
+            _messagesDB = messagesDB;
+        }
+
+        public async Task JoinChatGroup(int chatId)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"Chat_{chatId}");
+        }
+
+        public async Task SendMessage(int chatId, int userId, string text, DateTime time)
+        {
+            await Clients.Group($"Chat_{chatId}")
+                .SendAsync("ReceiveMessage", chatId, userId, text, time);
+        }
+
+        public async Task DeleteMessage(int messageId, int chatId)
+        {
+            await _messagesDB.Delete(messageId);
+
+            var remainingMessages = await _messagesDB.SelectMessagesByChatId(chatId);
+            var newLastMessage = remainingMessages.OrderByDescending(m => m.Time).FirstOrDefault();
+
+            await Clients.Group($"Chat_{chatId}")
+                .SendAsync("MessageDeleted", messageId,
+                    newLastMessage?.text ?? "",
+                    newLastMessage?.Time ?? DateTime.MinValue);
+        }
+
+        public async Task UpdateMessage(int messageId, int chatId, string newText)
+        {
+            await _messagesDB.UpdateMessageText(messageId, newText);
+
+            var allMessages = await _messagesDB.SelectMessagesByChatId(chatId);
+            var lastMessage = allMessages.OrderByDescending(m => m.Time).FirstOrDefault();
+
+            await Clients.Group($"Chat_{chatId}")
+                .SendAsync("MessageUpdated",
+                    messageId,
+                    newText,
+                    lastMessage?.id == messageId ? newText : lastMessage?.text ?? "");
+        }
+    }
+}
+
+הסבר על הפעולות:
+
+JoinChatGroup:
+- מוסיפה את החיבור הנוכחי לקבוצה של צ'אט מסוים
+- כל צ'אט הוא קבוצה נפרדת (Chat_1, Chat_2, וכו')
+- רק משתמשים בקבוצה יקבלו הודעות של הצ'אט הזה
+
+SendMessage:
+- שולחת הודעה לכל המשתמשים בקבוצת הצ'אט
+- משתמשת ב-Clients.Group כדי לשלוח רק למשתמשים הרלוונטיים
+- מעבירה את פרטי ההודעה (מזהה צ'אט, מזהה משתמש, טקסט, זמן)
+
+DeleteMessage:
+- מוחקת הודעה ממסד הנתונים
+- מוצאת את ההודעה האחרונה החדשה
+- מודיעה לכל המשתמשים בצ'אט על המחיקה
+
+UpdateMessage:
+- מעדכנת הודעה במסד הנתונים
+- מוצאת את ההודעה האחרונה (למקרה שההודעה המעודכנת היא האחרונה)
+- מודיעה לכל המשתמשים בצ'אט על העדכון
+
+
+מימוש CRUD - פעולות על נתונים
+
+
+המערכת משתמשת בשכבת DAL (Data Access Layer) לביצוע פעולות CRUD. הנה דוגמאות:
+
+
+1. שליפה (Read/Get)
+
+שליפת כל המשתמשים:
+
+public async Task<List<Tuners>> GetAllAsync()
+{
+    return ((List<Tuners>)await SelectAllAsync());
+}
+
+הסבר:
+- קוראת לפעולה הגנרית SelectAllAsync ללא פרמטרים
+- מחזירה רשימה של כל המשתמשים במסד הנתונים
+
+
+שליפת משתמש לפי ID:
+
+public async Task<Tuners> SelectUserID(int id)
+{
+    Dictionary<string, object> filter = new Dictionary<string, object>();
+    filter.Add("id", id);
+    List<Tuners> T = await SelectAllAsync(filter);
+    return T[0];
+}
+
+הסבר:
+- יוצרת פילטר עם מזהה המשתמש
+- קוראת ל-SelectAllAsync עם הפילטר
+- מחזירה את המשתמש הראשון (והיחיד) ברשימה
+
+
+שליפת הודעות לפי צ'אט:
+
+public async Task<List<Messages>> SelectMessagesByChatId(int id)
+{
+    Dictionary<string, object> filter = new Dictionary<string, object>();
+    filter.Add("chatid", id);
+    return ((List<Messages>)await SelectAllAsync(filter));
+}
+
+הסבר:
+- יוצרת פילטר עם מזהה הצ'אט
+- מחזירה את כל ההודעות השייכות לצ'אט זה
+
+
+2. הוספה (Create/Post)
+
+הוספת משתמש חדש (הרשמה):
+
+public async Task<Tuners> Reg(string username, string email, string password)
+{
+    Dictionary<string, object> filter = new Dictionary<string, object>();
+    filter.Add("email", email);
+    List<Tuners> t = await SelectAllAsync(filter);
+    
+    if (t.Count == 0)
+    {
+        Dictionary<string, object> fillValues = new Dictionary<string, object>()
+        {
+            { "name", username },
+            { "email", email },
+            { "password", password }
+        };
+        return (Tuners)await base.InsertGetObjAsync(fillValues);
+    }
+    else 
+        return null;
+}
+
+הסבר:
+- בודקת אם האימייל כבר קיים במערכת
+- אם לא קיים - יוצרת Dictionary עם הערכים החדשים
+- קוראת ל-InsertGetObjAsync שמכניסה את המשתמש ומחזירה את האובייקט המלא (כולל ID)
+- אם כבר קיים - מחזירה null
+
+
+הוספת הודעה חדשה:
+
+public async Task<Messages> NewMessage(string text, int chatid, int userid)
+{
+    Dictionary<string, object> valuePairs = new Dictionary<string, object>()
+    {
+        {"text", text },
+        {"chatid", chatid },
+        {"userid", userid }
+    };
+    return (Messages)await base.InsertGetObjAsync(valuePairs);
+}
+
+הסבר:
+- יוצרת Dictionary עם פרטי ההודעה
+- קוראת ל-InsertGetObjAsync שמכניסה את ההודעה למסד הנתונים
+- מחזירה את אובייקט ההודעה המלא (כולל ID וזמן שנוצרו אוטומטית)
+
+
+הוספת דיווח:
+
+public async Task<TimeSpan?> InsertGetObjAsync(Reports R)
+{
+    if (!IsValidCategory(R.report))
+        return null;
+
+    TunersDB s = new TunersDB();
+    Tuners t = await s.SelectUserID(R.reported);
+
+    if (t == null || t.bantime > DateTime.UtcNow)
+        return null;
+
+    Reports existing = await GetRecentReport(R.reporter, R.reported);
+    if (existing != null)
+    {
+        TimeSpan elapsed = DateTime.UtcNow - existing.created_at;
+        TimeSpan cooldown = TimeSpan.FromHours(24);
+        if (elapsed < cooldown)
+            return cooldown - elapsed;
+    }
+
+    Dictionary<string, object> fillValues = new Dictionary<string, object>()
+    {
+        { "reporter", R.reporter },
+        { "reported", R.reported },
+        { "report", R.report },
+        { "created_at", DateTime.UtcNow }
+    };
+
+    await base.InsertGetObjAsync(fillValues);
+    return null;
+}
+
+הסבר:
+- בודקת תקינות הקטגוריה
+- בודקת שהמשתמש המדווח קיים ולא חסום
+- בודקת Cooldown של 24 שעות
+- אם הכל תקין - מכניסה את הדיווח למסד הנתונים
+
+
+3. עדכון (Update/Put)
+
+עדכון סיסמה:
+
+public async Task<int> UpdatePasswordAsync(string email, string password)
+{
+    Dictionary<string, object> filter = new Dictionary<string, object>();
+    Dictionary<string, object> values = new Dictionary<string, object>();
+    values.Add("password", password);
+    filter.Add("email", email);
+    return await base.UpdateAsync(values, filter);
+}
+
+הסבר:
+- יוצרת Dictionary עם הסיסמה החדשה (values)
+- יוצרת Dictionary עם האימייל (filter)
+- קוראת ל-UpdateAsync שמעדכנת את הסיסמה למשתמש עם האימייל הזה
+- מחזירה את מספר השורות שהושפעו (בדרך כלל 1)
+
+
+עדכון שם משתמש:
+
+public async Task<int> UpdateUsernameAsync(int id, string username)
+{
+    Dictionary<string, object> filter = new Dictionary<string, object>();
+    Dictionary<string, object> values = new Dictionary<string, object>();
+    values.Add("name", username);
+    filter.Add("id", id);
+    return await base.UpdateAsync(values, filter);
+}
+
+הסבר:
+- יוצרת Dictionary עם השם החדש
+- יוצרת Dictionary עם מזהה המשתמש
+- מעדכנת את השם במסד הנתונים
+
+
+עדכון זמן חסימה:
+
+public async Task<int> SetBanTime(int userId, DateTime banUntil)
+{
+    Dictionary<string, object> filter = new Dictionary<string, object>();
+    Dictionary<string, object> values = new Dictionary<string, object>();
+    values.Add("bantime", banUntil);
+    filter.Add("id", userId);
+    return await base.UpdateAsync(values, filter);
+}
+
+הסבר:
+- מקבלת מזהה משתמש ותאריך חסימה
+- מעדכנת את שדה bantime במסד הנתונים
+- משמשת את המנהלים לחסימת משתמשים
+
+
+עדכון טקסט הודעה:
+
+public async Task UpdateMessageText(int messageId, string newText)
+{
+    Dictionary<string, object> value = new Dictionary<string, object>()
+    {
+        {"text", newText }
+    };
+    Dictionary<string, object> filter = new Dictionary<string, object>()
+    {
+        {"id", messageId }
+    };
+    await UpdateAsync(value, filter);
+}
+
+הסבר:
+- מקבלת מזהה הודעה וטקסט חדש
+- מעדכנת את תוכן ההודעה במסד הנתונים
+- משמשת לעריכת הודעות שכבר נשלחו
+
+
+4. מחיקה (Delete)
+
+מחיקת הודעה:
+
+public async Task<int> Delete(int Id)
+{
+    Dictionary<string, object> values = new Dictionary<string, object>()
+    {
+        {"id", Id },
+    };
+    return await base.DeleteAsync(values);
+}
+
+הסבר:
+- יוצרת Dictionary עם מזהה ההודעה
+- קוראת ל-DeleteAsync שמוחקת את ההודעה
+- מחזירה את מספר השורות שנמחקו (בדרך כלל 1)
+
+
+מחיקת דיווח:
+
+public async Task<int> DeleteReport(int Id)
+{
+    Dictionary<string, object> filter = new Dictionary<string, object>();
+    filter.Add("id", Id);
+    return await base.DeleteAsync(filter);
+}
+
+הסבר:
+- יוצרת פילטר עם מזהה הדיווח
+- מוחקת את הדיווח ממסד הנתונים
+- משמשת מנהלים למחיקת דיווחים לאחר טיפול
+
+
+מחיקת בקשת חברות:
+
+public async Task Unsend(int id, int id2)
+{
+    Dictionary<string, object> fillValues = new Dictionary<string, object>()
+    {
+        { "inviter_id", id },
+        { "invited_id", id2 },
+    };
+    await DeleteAsync(fillValues);
+}
+
+הסבר:
+- מקבלת שני מזהי משתמשים
+- מוחקת את הבקשה בין שני המשתמשים
+- משמשת לביטול בקשת חברות
+
+
+מחיקת רשימת דיווחים:
+
+public async Task DeleteReportsListAsync(List<Reports> R)
+{
+    foreach(Reports r in R)
+    {
+        await DeleteReport(r.id);
+    }
+}
+
+הסבר:
+- מקבלת רשימה של דיווחים
+- עוברת על כל דיווח ומוחקת אותו
+- משמשת למחיקה מרובה של דיווחים (למשל כשמנהל מחסום משתמש)
+
+
+שירותי רשת חיצוניים
+
+
+1. Resend - שירות שליחת אימיילים
+
+המערכת משתמשת בשירות Resend לשליחת קודי אימות באימייל.
+
+הגדרת השירות ב-Program.cs:
+
+builder.Services.AddOptions();
+builder.Services.AddHttpClient<ResendClient>();
+builder.Services.Configure<ResendClientOptions>(o =>
+{
+    o.ApiToken = "YOUR_API_KEY_HERE";
+});
+builder.Services.AddTransient<IResend, ResendClient>();
+
+הסבר:
+- רושם את שירות Resend עם מפתח API
+- מגדיר את השירות כ-Transient (נוצר מחדש בכל בקשה)
+
+
+מימוש שליחת אימייל:
+
+namespace Tune.site
+{
+    public class EmailService
+    {
+        private const string KEY = "re_5zRaWTAo_8UxgMxxJCV2tjmb1G6VAWVck";
+
+        public static async Task SendMessage(string toEmail, int num)
+        {
+            IResend resend = ResendClient.Create(KEY);
+
+            var resp = await resend.EmailSendAsync(new EmailMessage()
+            {
+                From = "onboarding@resend.dev",
+                To = "michaelvinnik08@gmail.com",
+                Subject = $"Password Reset Code for {toEmail}",
+                HtmlBody = $"<p>Reset code for <strong>{toEmail}</strong>: <strong>{num}</strong></p>"
+            });
+        }
+    }
+}
+
+הסבר:
+- מקבלת כתובת אימייל וקוד מספרי
+- יוצרת לקוח Resend עם מפתח API
+- שולחת אימייל עם קוד האימות
+- האימייל נשלח תמיד לכתובת קבועה (michaelvinnik08@gmail.com)
+- הנושא מציין למי הקוד מיועד
+
+שימושים במערכת:
+1. אימות אימייל בהרשמה - שולח קוד בן 6 ספרות לאימות
+2. שחזור סיסמה - שולח קוד לאיפוס סיסמה
+
+
+2. Custom Music API - שירות נתוני מוזיקה
+
+המערכת משתמשת ב-API מותאם אישית (project12api) לקבלת נתוני האזנות מוזיקליות.
+
+נקודות קצה (Endpoints):
+
+GET /api/UserGenres/{email}
+- מחזיר את וקטור הז'אנרים של משתמש אחד
+- משמש לקבלת העדפות המוזיקה של משתמש
+
+POST /api/UserGenres/batch
+- מקבל רשימת אימיילים
+- מחזיר וקטורי ז'אנרים של כל המשתמשים
+- משמש לאלגוריתם KNN למציאת משתמשים דומים
+
+
+מימוש ה-API Controller:
+
+[ApiController]
+[Route("api/[controller]")]
+public class UserGenresController : ControllerBase
+{
+    [HttpGet("{email}")]
+    public async Task<IActionResult> GetGenres(string email)
+    {
+        ReplayInfoDB RI = new ReplayInfoDB();
+        List<ReplayInfo> R = await RI.GetUserGenres(email);
+        
+        if (R == null) 
+            return NotFound("User not found in API");
+            
+        var result = R;
+        return Ok(result);
+    }
+
+    [HttpPost("batch")]
+    public async Task<IActionResult> GetGenresBatch([FromBody] List<string> emails)
+    {
+        UsersDB U = new UsersDB();
+        List<object> result = new List<object>();
+        
+        foreach (string email in emails)
+        {
+            ReplayInfoDB RI = new ReplayInfoDB();
+            List<ReplayInfo> R = await RI.GetUserGenres(email);
+            
+            if (R.Count == 0) continue;
+            
+            var genreVector = R;
+            result.Add(new
+            {
+                Email = email,
+                Genres = genreVector
+            });
+        }
+        
+        return Ok(result);
+    }
+}
+
+הסבר:
+
+GetGenres (GET):
+- מקבל אימייל של משתמש
+- שולף את נתוני ההאזנות שלו (ז'אנרים וכמויות)
+- מחזיר רשימה של ReplayInfo (ז'אנר + כמות)
+- אם המשתמש לא נמצא - מחזיר NotFound
+
+GetGenresBatch (POST):
+- מקבל רשימת אימיילים
+- עובר על כל אימייל ושולף את נתוני ההאזנות
+- מחזיר מערך של אובייקטים עם Email ו-Genres
+- משמש לאלגוריתם KNN שצריך להשוות בין משתמשים רבים
+
+
+שאילתת SQL לשליפת נתוני ז'אנרים:
+
+public async Task<List<ReplayInfo>> GetUserGenres(string email)
+{
+    string query = $@"Select
+                        genres.name,
+                        replayes.amount
+                      From
+                        replayes 
+                      Inner Join genres On replayes.genreid = genres.id 
+                      Inner Join users On replayes.userid = users.id
+                      Where
+                        users.email = '{email}'
+                      Order By
+                        genres.name";
+    
+    List<ReplayInfo> ri = ((List<ReplayInfo>)await SelectAllAsync(query));
+    return ri;
+}
+
+הסבר:
+- מצטרפת לשלוש טבלאות: replayes, genres, users
+- מחזירה את שם הז'אנר וכמות ההאזנות
+- ממיינת לפי שם הז'אנר (חשוב ל-KNN)
+- מחזירה רשימה של ReplayInfo
+
+
+שימוש ב-API במערכת הראשית:
+
+המערכת הראשית (Tune.site) קוראת ל-API הזה כדי:
+1. לקבל את וקטור הז'אנרים של המשתמש המחובר
+2. לקבל וקטורי ז'אנרים של כל המשתמשים האחרים
+3. להשוות ביניהם באמצעות אלגוריתם KNN
+4. למצוא את המשתמשים עם טעם מוזיקלי הכי דומה
+
+
+סיכום זרימת הנתונים
+
+1. לקוח (דפדפן) → SignalR Hub → שרת
+   - משתמש שולח הודעה בצ'אט
+   - SignalR מעביר את ההודעה לשרת
+   - השרת שומר במסד הנתונים ומפיץ לכל המשתמשים בצ'אט
+
+2. לקוח → Blazor Component → DAL → מסד נתונים
+   - משתמש מבצע פעולה (הרשמה, עדכון פרופיל, וכו')
+   - הקומפוננט קורא לשכבת DAL
+   - DAL מבצעת פעולת CRUD במסד הנתונים
+   - התוצאה חוזרת ללקוח
+
+3. לקוח → Custom API → מסד נתונים API
+   - המערכת צריכה נתוני מוזיקה
+   - קוראת ל-API עם אימייל
+   - API שולף נתונים ממסד נתונים נפרד
+   - מחזיר וקטור ז'אנרים
+
+4. שרת → Resend API → אימייל
+   - משתמש מבקש איפוס סיסמה או אימות
+   - השרת יוצר קוד אקראי
+   - קורא ל-Resend API
+   - Resend שולח אימייל למשתמש

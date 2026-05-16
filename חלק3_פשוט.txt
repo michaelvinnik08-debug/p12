@@ -1,0 +1,364 @@
+חלק 3: תיאור המבנה שבו נשמר המידע
+
+
+תרשים DSD (קשרי גומלין) - מסד נתונים ראשי (project12)
+
+קוד Mermaid (להמרה לתרשים ב-https://mermaid.live/):
+
+erDiagram
+    users ||--o{ chats : "משתתף_ב"
+    users ||--o{ messages : "שולח"
+    users ||--o{ reports : "מדווח_או_מדווח_עליו"
+    users ||--o{ requests : "שולח_או_מקבל_בקשה"
+    chats ||--o{ messages : "מכיל"
+    
+    users {
+        id
+        name
+        email
+        password
+        role
+        bantime
+        created
+        picture
+    }
+    
+    chats {
+        id
+        user1_id
+        last_message
+        last_message_time
+        user2_id
+    }
+    
+    messages {
+        id
+        text
+        Time
+        chatid
+        userid
+    }
+    
+    reports {
+        id
+        report
+        reported
+        reporter
+        created_at
+    }
+    
+    requests {
+        id
+        inviter_id
+        invited_id
+        matched
+    }
+
+
+תרשים DSD - מסד נתונים API (project12api)
+
+קוד Mermaid (להמרה לתרשים ב-https://mermaid.live/):
+
+erDiagram
+    users ||--o{ replayes : "מאזין_ל"
+    genres ||--o{ replayes : "נספר_ב"
+    
+    users {
+        id
+        name
+        email
+    }
+    
+    genres {
+        id
+        name
+    }
+    
+    replayes {
+        id
+        userid
+        genreid
+        amount
+    }
+
+
+פירוט טבלאות - מסד נתונים ראשי (project12)
+
+
+טבלה 1: users
+תפקיד: שמירת כל המידע על המשתמשים במערכת
+
+שם שדה: id
+סוג נתון: INT
+אילוצים: PRIMARY KEY, AUTO_INCREMENT
+תפקיד: מזהה ייחודי של המשתמש
+
+שם שדה: name
+סוג נתון: VARCHAR(100)
+אילוצים: NOT NULL
+תפקיד: שם המשתמש המוצג במערכת
+
+שם שדה: email
+סוג נתון: VARCHAR(255)
+אילוצים: NOT NULL, UNIQUE
+תפקיד: כתובת אימייל ייחודית לכניסה למערכת
+
+שם שדה: password
+סוג נתון: VARCHAR(255)
+אילוצים: NOT NULL
+תפקיד: סיסמה מוצפנת
+
+שם שדה: role
+סוג נתון: INT
+אילוצים: DEFAULT 0
+תפקיד: תפקיד המשתמש (0=משתמש רגיל, 1=מנהל)
+
+שם שדה: bantime
+סוג נתון: DATETIME
+אילוצים: DEFAULT '1970-01-01 00:00:00'
+תפקיד: תאריך ושעה עד מתי המשתמש חסום
+
+שם שדה: created
+סוג נתון: DATETIME
+אילוצים: DEFAULT CURRENT_TIMESTAMP
+תפקיד: תאריך ושעת יצירת החשבון
+
+שם שדה: picture
+סוג נתון: LONGTEXT
+אילוצים: NULL
+תפקיד: תמונת פרופיל בפורמט Base64
+
+מפתחות:
+- מפתח ראשי: id
+- מפתח ייחודי: email
+
+
+טבלה 2: chats
+תפקיד: שמירת מידע על שיחות בין שני משתמשים
+
+שם שדה: id
+סוג נתון: INT
+אילוצים: PRIMARY KEY, AUTO_INCREMENT
+תפקיד: מזהה ייחודי של הצ'אט
+
+שם שדה: user1_id
+סוג נתון: INT
+אילוצים: NOT NULL, FOREIGN KEY
+תפקיד: מזהה משתמש ראשון בשיחה
+
+שם שדה: last_message
+סוג נתון: TEXT
+אילוצים: NULL
+תפקיד: תוכן ההודעה האחרונה שנשלחה
+
+שם שדה: last_message_time
+סוג נתון: DATETIME
+אילוצים: DEFAULT CURRENT_TIMESTAMP
+תפקיד: זמן שליחת ההודעה האחרונה
+
+שם שדה: user2_id
+סוג נתון: INT
+אילוצים: NOT NULL, FOREIGN KEY
+תפקיד: מזהה משתמש שני בשיחה
+
+מפתחות וקשרים:
+- מפתח ראשי: id
+- מפתח זר: user1_id → users(id) [fk_chats_user1]
+- מפתח זר: user2_id → users(id) [fk_chats_user2]
+
+
+טבלה 3: messages
+תפקיד: שמירת כל ההודעות שנשלחו בצ'אטים
+
+שם שדה: id
+סוג נתון: INT
+אילוצים: PRIMARY KEY, AUTO_INCREMENT
+תפקיד: מזהה ייחודי של ההודעה
+
+שם שדה: text
+סוג נתון: TEXT
+אילוצים: NOT NULL
+תפקיד: תוכן ההודעה
+
+שם שדה: Time
+סוג נתון: DATETIME
+אילוצים: DEFAULT CURRENT_TIMESTAMP
+תפקיד: זמן שליחת ההודעה
+
+שם שדה: chatid
+סוג נתון: INT
+אילוצים: NOT NULL, FOREIGN KEY
+תפקיד: מזהה הצ'אט שההודעה שייכת אליו
+
+שם שדה: userid
+סוג נתון: INT
+אילוצים: NOT NULL, FOREIGN KEY
+תפקיד: מזהה המשתמש ששלח את ההודעה
+
+מפתחות וקשרים:
+- מפתח ראשי: id
+- מפתח זר: chatid → chats(id) [fk_messages_chat]
+- מפתח זר: userid → users(id) [fk_messages_user]
+
+
+טבלה 4: reports
+תפקיד: שמירת דוחות שמשתמשים שולחים על משתמשים אחרים
+
+שם שדה: id
+סוג נתון: INT
+אילוצים: PRIMARY KEY, AUTO_INCREMENT
+תפקיד: מזהה ייחודי של הדיווח
+
+שם שדה: report
+סוג נתון: TEXT
+אילוצים: NOT NULL
+תפקיד: סוג הדיווח (Spam, Harassment, וכו')
+
+שם שדה: reported
+סוג נתון: INT
+אילוצים: NOT NULL, FOREIGN KEY
+תפקיד: מזהה המשתמש שדווח עליו
+
+שם שדה: reporter
+סוג נתון: INT
+אילוצים: NOT NULL, FOREIGN KEY
+תפקיד: מזהה המשתמש שביצע את הדיווח
+
+שם שדה: created_at
+סוג נתון: DATETIME
+אילוצים: DEFAULT CURRENT_TIMESTAMP
+תפקיד: זמן יצירת הדיווח
+
+מפתחות וקשרים:
+- מפתח ראשי: id
+- מפתח זר: reported → users(id) [fk_reports_reported]
+- מפתח זר: reporter → users(id) [fk_reports_reporter]
+
+קטגוריות דיווח אפשריות:
+- Fake or impersonation (זיוף או התחזות)
+- Inappropriate profile content (תוכן פרופיל לא הולם)
+- Inappropriate language (שפה לא הולמת)
+- Spam or flooding (ספאם או הצפה)
+- Harassment or threats (הטרדה או איומים)
+- Other (אחר)
+
+
+טבלה 5: requests
+תפקיד: שמירת בקשות חברות בין משתמשים
+
+שם שדה: id
+סוג נתון: INT
+אילוצים: PRIMARY KEY, AUTO_INCREMENT
+תפקיד: מזהה ייחודי של הבקשה
+
+שם שדה: inviter_id
+סוג נתון: INT
+אילוצים: NOT NULL, FOREIGN KEY
+תפקיד: מזהה המשתמש ששלח את הבקשה
+
+שם שדה: invited_id
+סוג נתון: INT
+אילוצים: NOT NULL, FOREIGN KEY
+תפקיד: מזהה המשתמש שקיבל את הבקשה
+
+שם שדה: matched
+סוג נתון: DATETIME
+אילוצים: DEFAULT CURRENT_TIMESTAMP
+תפקיד: זמן יצירת הבקשה
+
+מפתחות וקשרים:
+- מפתח ראשי: id
+- מפתח זר: inviter_id → users(id) [fk_requests_invited]
+- מפתח זר: invited_id → users(id) [fk_requests_inviter]
+
+
+פירוט טבלאות - מסד נתונים API (project12api)
+
+
+טבלה 6: users (API)
+תפקיד: שמירת מידע בסיסי על משתמשים לצורך ה-API
+
+שם שדה: id
+סוג נתון: INT
+אילוצים: PRIMARY KEY, AUTO_INCREMENT
+תפקיד: מזהה ייחודי של המשתמש
+
+שם שדה: name
+סוג נתון: VARCHAR(45)
+אילוצים: NULL
+תפקיד: שם המשתמש
+
+שם שדה: email
+סוג נתון: VARCHAR(45)
+אילוצים: NOT NULL, UNIQUE
+תפקיד: כתובת אימייל ייחודית
+
+מפתחות:
+- מפתח ראשי: id
+- מפתח ייחודי: email
+
+
+טבלה 7: genres
+תפקיד: שמירת רשימת ז'אנרים מוזיקליים
+
+שם שדה: id
+סוג נתון: INT
+אילוצים: PRIMARY KEY, AUTO_INCREMENT
+תפקיד: מזהה ייחודי של הז'אנר
+
+שם שדה: name
+סוג נתון: VARCHAR(45)
+אילוצים: NOT NULL
+תפקיד: שם הז'אנר (Rock, Pop, Jazz, וכו')
+
+מפתחות:
+- מפתח ראשי: id
+
+
+טבלה 8: replayes (טבלת קישור)
+תפקיד: טבלת קישור המממשת קשר "רבים לרבים" בין משתמשים לז'אנרים
+
+שם שדה: id
+סוג נתון: INT
+אילוצים: PRIMARY KEY, AUTO_INCREMENT
+תפקיד: מזהה ייחודי של הרשומה
+
+שם שדה: userid
+סוג נתון: INT
+אילוצים: NOT NULL, FOREIGN KEY
+תפקיד: מזהה המשתמש
+
+שם שדה: genreid
+סוג נתון: INT
+אילוצים: NOT NULL, FOREIGN KEY
+תפקיד: מזהה הז'אנר
+
+שם שדה: amount
+סוג נתון: INT
+אילוצים: NULL
+תפקיד: כמות ההאזנות של המשתמש לז'אנר זה
+
+מפתחות וקשרים:
+- מפתח ראשי: id
+- מפתח זר: userid → users(id) [userid]
+- מפתח זר: genreid → genres(id) [genreid]
+- אינדקסים: userid_idx, genreid_idx
+
+הסבר על טבלת הקישור:
+טבלה זו מאפשרת למשתמש אחד להיות מקושר לז'אנרים רבים, וכל ז'אנר יכול להיות מקושר למשתמשים רבים (קשר Many-to-Many). השדה amount מוסיף מידע נוסף על עוצמת הקשר - כמה פעמים המשתמש האזין לז'אנר זה. מידע זה משמש את אלגוריתם ה-KNN למציאת משתמשים עם טעם מוזיקלי דומה על ידי השוואת וקטורי הז'אנרים והכמויות.
+
+
+מידע טכני נוסף
+
+מנוע מסד הנתונים:
+- מנוע: InnoDB
+- קידוד תווים: utf8mb4
+- Collation: utf8mb4_0900_ai_ci
+- גרסת MySQL: 8.0.31
+
+הערות חשובות:
+1. כל התרשימים לעיל נכתבו בפורמט Mermaid
+2. להמרת התרשימים לתמונות, יש להיכנס לאתר: https://mermaid.live/
+3. יש להעתיק את קוד ה-Mermaid של כל תרשים ולהדביק באתר
+4. האתר יצור תרשים גרפי שניתן להוריד כתמונה PNG או SVG
+5. ניתן להוסיף את התמונות ליומן הפרוייקט

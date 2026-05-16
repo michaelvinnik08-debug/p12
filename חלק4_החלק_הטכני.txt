@@ -1,0 +1,532 @@
+חלק 4: החלק הטכני של השרת והלוגיקה
+
+
+שכבת ה-Model (מודלים)
+
+
+תרשים UML של המחלקות
+
+קוד Mermaid (להמרה לתרשים ב-https://mermaid.live/):
+
+classDiagram
+    class Tuners {
+        +int Id
+        +string username
+        +string email
+        +string password
+        +int role
+        +DateTime bantime
+        +DateTime created
+        +string picture
+    }
+    
+    class Chats {
+        +int id
+        +int user1
+        +int user2
+        +DateTime last
+        +string message
+        +int is_read
+    }
+    
+    class Messages {
+        +int id
+        +string text
+        +DateTime Time
+        +int chatid
+        +int userid
+    }
+    
+    class Reports {
+        +int id
+        +string report
+        +int reported
+        +int reporter
+        +DateTime created_at
+    }
+    
+    class Requests {
+        +int id
+        +int invited
+        +int inviter
+        +DateTime matched
+    }
+
+
+הסבר קוד - מחלקת Tuners (משתמשים)
+
+namespace Moduls
+{
+    public class Tuners
+    {
+        public int Id { get; set; }
+        public string username { get; set; }
+        public string email { get; set; }
+        public string password { get; set; }
+        public int role { get; set; }
+        public DateTime bantime { get; set; }
+        public DateTime created { get; set; }
+        public string picture { get; set; }
+       
+        public Tuners() { }
+        public Tuners(int Id, string username, string email, string password, string picture)
+        {
+            this.Id = Id;
+            this.username = username;
+            this.password = password;
+            this.email = email;
+            this.picture = picture;
+        }
+    }
+}
+
+הסבר:
+מחלקה זו מייצגת משתמש במערכת. היא מכילה את כל המאפיינים הנדרשים:
+- Id: מזהה ייחודי של המשתמש
+- username: שם המשתמש המוצג
+- email: כתובת אימייל לכניסה למערכת
+- password: סיסמה מוצפנת
+- role: תפקיד (0=משתמש רגיל, 1=מנהל)
+- bantime: תאריך חסימה (אם המשתמש חסום)
+- created: תאריך יצירת החשבון
+- picture: תמונת פרופיל בפורמט Base64
+
+המחלקה כוללת קונסטרוקטור ריק וקונסטרוקטור עם פרמטרים ליצירת אובייקט משתמש חדש.
+
+
+הסבר קוד - מחלקת Messages (הודעות)
+
+namespace Moduls
+{
+    public class Messages
+    {
+        public int id { get; set; }
+        public string text { get; set; }
+        public DateTime Time { get; set; }
+        public int chatid { get; set; }
+        public int userid { get; set; }
+
+        public Messages() { }
+        public Messages(int id, string text, DateTime Time, int chatid, int userid)
+        {
+            this.id = id;
+            this.text = text;
+            this.Time = Time;
+            this.chatid = chatid;
+            this.userid = userid;
+        }
+    }
+}
+
+הסבר:
+מחלקה זו מייצגת הודעה בצ'אט. היא מכילה:
+- id: מזהה ייחודי של ההודעה
+- text: תוכן ההודעה
+- Time: זמן שליחת ההודעה
+- chatid: מזהה הצ'אט שההודעה שייכת אליו (מפתח זר)
+- userid: מזהה המשתמש ששלח את ההודעה (מפתח זר)
+
+המחלקה מאפשרת יצירת אובייקט הודעה חדש עם כל הפרטים הנדרשים.
+
+
+שכבת ה-DAL (Data Access Layer - גישה לנתונים)
+
+
+תרשים UML - ירושות וקשרים
+
+קוד Mermaid (להמרה לתרשים ב-https://mermaid.live/):
+
+classDiagram
+    DB <|-- BaseDB
+    BaseDB <|-- TunersDB
+    BaseDB <|-- ChatsDB
+    BaseDB <|-- MessagesDB
+    BaseDB <|-- ReportsDB
+    BaseDB <|-- RequestsDB
+    
+    class DB {
+        #DbConnection conn
+        #DbCommand cmd
+        #DbDataReader reader
+        +DB()
+    }
+    
+    class BaseDB~T~ {
+        #GetTableName() string
+        #GetPrimaryKeyName() string
+        #CreateModelAsync(object[]) Task~T~
+        #SelectAllAsync() Task~List~T~~
+        #InsertAsync(Dictionary) Task~int~
+        #UpdateAsync(Dictionary, Dictionary) Task~int~
+        #DeleteAsync(Dictionary) Task~int~
+        #InsertGetObjAsync(Dictionary) Task~T~
+    }
+    
+    class TunersDB {
+        +GetAllAsync() Task~List~Tuners~~
+        +SelectUserID(int) Task~Tuners~
+        +SelectUserEmail(string) Task~Tuners~
+        +Reg(string, string, string) Task~Tuners~
+        +Login(string, string) Task~Tuners~
+        +UpdatePasswordAsync(string, string) Task~int~
+        +SetBanTime(int, DateTime) Task~int~
+    }
+    
+    class MessagesDB {
+        +SelectMessagesByChatId(int) Task~List~Messages~~
+        +NewMessage(string, int, int) Task~Messages~
+        +Delete(int) Task~int~
+        +UpdateMessageText(int, string) Task
+    }
+    
+    class ChatsDB {
+        +SelectChats(Tuners) Task~List~Chats~~
+        +SelectChatByUserId(int, int) Task~Chats~
+        +InsertGetObjAsync(Chats) Task~Chats~
+        +UpdateAsync(string, DateTime, Chats) Task~int~
+    }
+    
+    class ReportsDB {
+        +GetAllAsync() Task~List~Reports~~
+        +GetUsersReportsAsync(int) Task~List~Reports~~
+        +InsertGetObjAsync(Reports) Task~TimeSpan~
+        +DeleteReport(int) Task~int~
+    }
+    
+    class RequestsDB {
+        +GetInvitedRequests(Tuners) Task~List~Requests~~
+        +NewRequest(int, int) Task~Requests~
+        +GetRequestBetween2Users(int, int) Task~Requests~
+        +Unsend(int, int) Task
+    }
+
+
+הסבר על המבנה:
+המערכת בנויה בארכיטקטורת שכבות:
+
+1. שכבת DB (בסיס):
+   - מכילה את החיבור למסד הנתונים MySQL
+   - מנהלת את אובייקטי Connection, Command ו-Reader
+
+2. שכבת BaseDB (גנרית):
+   - יורשת מ-DB
+   - מספקת פעולות CRUD גנריות (Create, Read, Update, Delete)
+   - משתמשת ב-Generics (<T>) כדי לעבוד עם כל סוג מודל
+   - מגנה מפני SQL Injection באמצעות פרמטרים
+
+3. שכבות ה-DB הספציפיות:
+   - כל מחלקה יורשת מ-BaseDB עם המודל המתאים
+   - מממשת פעולות ספציפיות לטבלה שלה
+   - לדוגמה: TunersDB עובדת עם מודל Tuners
+
+
+תהליכים מייצגים - פעולות מורכבות
+
+
+1. פעולת הרשמה עם בדיקת קיום משתמש
+
+public async Task<Tuners> Reg(string username, string email, string password)
+{
+    Dictionary<string, object> filter = new Dictionary<string, object>();
+    filter.Add("email", email);
+    List<Tuners> t = await SelectAllAsync(filter);
+    
+    if (t.Count == 0)
+    {
+        Dictionary<string, object> fillValues = new Dictionary<string, object>()
+        {
+            { "name", username },
+            { "email", email },
+            { "password", password }
+        };
+        return (Tuners)await base.InsertGetObjAsync(fillValues);
+    }
+    else 
+        return null;
+}
+
+הסבר:
+פעולה זו מבצעת הרשמה של משתמש חדש למערכת:
+1. יוצרת Dictionary עם האימייל כפילטר
+2. בודקת אם קיים משתמש עם אותו אימייל במסד הנתונים
+3. אם לא קיים (Count == 0):
+   - יוצרת Dictionary עם הערכים החדשים
+   - מכניסה את המשתמש למסד הנתונים
+   - מחזירה את אובייקט המשתמש שנוצר (כולל ה-ID שנוצר אוטומטית)
+4. אם כבר קיים - מחזירה null (הרשמה נכשלה)
+
+
+2. פעולת התחברות עם אימות
+
+public async Task<Tuners> Login(string email, string password)
+{
+    Dictionary<string, object> filter = new Dictionary<string, object>();
+    filter.Add("email", email);
+    filter.Add("password", password);
+    
+    List<Tuners> t = ((List<Tuners>)await SelectAllAsync(filter));
+    
+    if (t.Count == 0)
+    {
+        return null;
+    }
+    return t[0];
+}
+
+הסבר:
+פעולה זו מבצעת התחברות למערכת:
+1. יוצרת Dictionary עם האימייל והסיסמה כפילטרים
+2. מבצעת שאילתה למסד הנתונים עם שני התנאים
+3. אם נמצא משתמש (Count > 0) - מחזירה את אובייקט המשתמש
+4. אם לא נמצא - מחזירה null (התחברות נכשלה)
+
+שימו לב: הפעולה משתמשת ב-Dictionary שמומר לפרמטרים SQL, מה שמגן מפני SQL Injection.
+
+
+3. פעולת שליפת הודעות לפי צ'אט
+
+public async Task<List<Messages>> SelectMessagesByChatId(int id)
+{
+    Dictionary<string, object> filter = new Dictionary<string, object>();
+    filter.Add("chatid", id);
+    return ((List<Messages>)await SelectAllAsync(filter));
+}
+
+הסבר:
+פעולה פשוטה אך חשובה:
+1. מקבלת מזהה צ'אט
+2. יוצרת פילטר עם מזהה הצ'אט
+3. מחזירה את כל ההודעות השייכות לצ'אט זה
+4. משמשת להצגת היסטוריית השיחה בממשק המשתמש
+
+
+4. פעולת דיווח עם בדיקות ואימותים
+
+public async Task<TimeSpan?> InsertGetObjAsync(Reports R)
+{
+    if (!IsValidCategory(R.report))
+        return null;
+
+    TunersDB s = new TunersDB();
+    Tuners t = await s.SelectUserID(R.reported);
+
+    if (t == null || t.bantime > DateTime.UtcNow)
+        return null;
+
+    Reports existing = await GetRecentReport(R.reporter, R.reported);
+    if (existing != null)
+    {
+        TimeSpan elapsed = DateTime.UtcNow - existing.created_at;
+        TimeSpan cooldown = TimeSpan.FromHours(24);
+        if (elapsed < cooldown)
+            return cooldown - elapsed;
+    }
+
+    Dictionary<string, object> fillValues = new Dictionary<string, object>()
+    {
+        { "reporter", R.reporter },
+        { "reported", R.reported },
+        { "report", R.report },
+        { "created_at", DateTime.UtcNow }
+    };
+
+    await base.InsertGetObjAsync(fillValues);
+    return null;
+}
+
+הסבר:
+פעולה מורכבת זו מבצעת דיווח על משתמש עם מספר בדיקות:
+
+1. בדיקת תקינות קטגוריית הדיווח:
+   - בודקת שהקטגוריה היא אחת מהקטגוריות המותרות
+
+2. בדיקת קיום המשתמש המדווח:
+   - שולפת את המשתמש שדווח עליו
+   - בודקת שהוא קיים ושהוא לא כבר חסום
+
+3. בדיקת Cooldown (זמן המתנה):
+   - בודקת אם המדווח כבר דיווח על אותו משתמש ב-24 השעות האחרונות
+   - אם כן - מחזירה את זמן ההמתנה שנותר
+   - מונעת ספאם של דיווחים
+
+4. הכנסת הדיווח:
+   - אם כל הבדיקות עברו - מכניסה את הדיווח למסד הנתונים
+   - מחזירה null (מציין הצלחה)
+
+
+5. פעולת חיפוש צ'אט בין שני משתמשים
+
+public async Task<Chats> SelectChatByUserId(int id, int id2)
+{
+    string query = $@"SELECT * FROM project12.chats 
+                      WHERE ({id} = user1_id && {id2} = user2_id) 
+                         || ({id2} = user1_id && {id} = user2_id)  
+                      Order by last_message_time";
+    
+    List<Chats> C = ((List<Chats>)await SelectAllAsync(query));
+    
+    if (C.Count == 1)
+        return C[0];
+    return null;
+}
+
+הסבר:
+פעולה זו מחפשת צ'אט קיים בין שני משתמשים:
+1. בונה שאילתה שבודקת את שני הכיוונים האפשריים:
+   - משתמש 1 הוא user1_id ומשתמש 2 הוא user2_id
+   - או להיפך (משתמש 2 הוא user1_id ומשתמש 1 הוא user2_id)
+2. ממיינת לפי זמן ההודעה האחרונה
+3. אם נמצא צ'אט אחד - מחזירה אותו
+4. אם לא נמצא - מחזירה null
+
+שימו לב: כאן השאילתה בנויה ישירות עם המזהים, אבל מכיוון שהם מספרים שלמים (int) ולא מגיעים מקלט משתמש ישיר, אין סיכון של SQL Injection.
+
+
+הרחבות צד שרת
+
+
+1. הליך א-סינכרוני (Async/Await)
+
+המערכת משתמשת בהרחבה ב-Async/Await לביצוע פעולות א-סינכרוניות. זה מאפשר לשרת לטפל במספר בקשות במקביל מבלי לחסום את ה-Thread הראשי.
+
+דוגמה מ-BaseDB:
+
+protected async Task<List<T>> SelectAllAsync(Dictionary<string, object> parameters)
+{
+    return await SelectAllAsync("", parameters);
+}
+
+protected async Task<int> InsertAsync(Dictionary<string, object> keyAndValue)
+{
+    string sqlCommand = PrepareInsertQueryWithParameters(keyAndValue);
+    return await ExecNonQueryAsync(sqlCommand);
+}
+
+private async Task<int> ExecNonQueryAsync(string query)
+{
+    if (String.IsNullOrEmpty(query))
+        return 0;
+        
+    await PreQueryAsync(query);
+    int rowsEffected = 0;
+    
+    try
+    {
+        rowsEffected = await cmd.ExecuteNonQueryAsync();
+    }
+    catch (Exception e)
+    {
+        System.Diagnostics.Debug.WriteLine(e.Message + "\nsql:" + cmd.CommandText);
+    }
+    finally
+    {
+        await PostQueryAsync();
+    }
+    
+    return rowsEffected;
+}
+
+הסבר:
+1. כל פעולה שמבצעת גישה למסד הנתונים מוגדרת כ-async
+2. השימוש ב-await מאפשר לשרת לשחרר את ה-Thread בזמן שהפעולה מתבצעת
+3. זה מאפשר לשרת לטפל בבקשות נוספות במקביל
+4. כאשר הפעולה מסתיימת, הקוד ממשיך מהנקודה שבה הוא עצר
+
+יתרונות:
+- ביצועים טובים יותר - השרת יכול לטפל ביותר בקשות במקביל
+- חווית משתמש טובה יותר - הממשק לא נתקע בזמן פעולות ארוכות
+- שימוש יעיל יותר במשאבי השרת
+
+
+2. הגנה מפני SQL Injection
+
+המערכת משתמשת בפרמטרים SQL כדי להגן מפני התקפות SQL Injection. במקום לבנות שאילתות עם ערכים ישירים, המערכת משתמשת ב-Parameters.
+
+דוגמה מ-BaseDB:
+
+private void AddParameterToCommand(string name, object value)
+{
+    DbParameter p = cmd.CreateParameter();
+    p.ParameterName = name;
+    p.Value = value;
+    cmd.Parameters.Add(p);
+}
+
+private string PrepareWhereQueryWithParameters(Dictionary<string, object> parameters)
+{
+    string where = "WHERE ";
+    string AND = "AND";
+    
+    if (parameters != null && parameters.Count > 0)
+    {
+        foreach (KeyValuePair<string, object> param in parameters)
+        {
+            string prm = $"@W{param.Key}";
+            where += $"{param.Key}={prm} {AND} ";
+            AddParameterToCommand(prm, param.Value);
+        }
+        where = where.Remove(where.Length - AND.Length - 2);
+    }
+    else
+        where = "";
+        
+    return where;
+}
+
+private string PrepareInsertQueryWithParameters(Dictionary<string, object> fields)
+{
+    if (fields == null || fields.Count == 0)
+        return "";
+
+    string InKey = "(" + string.Join(",", fields.Keys) + ")";
+    string InValue = "VALUES(";
+    
+    for (int i = 0; i < fields.Values.Count; i++)
+    {
+        string pn = "@" + i;
+        InValue += pn + ',';
+        AddParameterToCommand(pn, fields.Values.ElementAt(i));
+    }
+    
+    InValue = InValue.Remove(InValue.Length - 1);
+    InValue += ")";
+
+    string sqlCommand = $"INSERT INTO {GetTableName()} {InKey} {InValue};";
+    return sqlCommand;
+}
+
+הסבר:
+1. במקום לבנות שאילתה כך:
+   SELECT * FROM users WHERE email='user@example.com'
+   
+2. המערכת בונה שאילתה עם פרמטרים:
+   SELECT * FROM users WHERE email=@Wemail
+   
+3. הערך של האימייל מועבר בנפרד כפרמטר:
+   @Wemail = 'user@example.com'
+
+4. MySQL מטפל בפרמטר בצורה בטוחה ומונע הזרקת קוד זדוני
+
+דוגמה לשימוש:
+
+Dictionary<string, object> filter = new Dictionary<string, object>();
+filter.Add("email", userInput);
+filter.Add("password", passwordInput);
+List<Tuners> t = await SelectAllAsync(filter);
+
+גם אם userInput מכיל תווים מסוכנים כמו ' OR '1'='1, הם יטופלו כטקסט רגיל ולא כקוד SQL.
+
+יתרונות:
+- הגנה מלאה מפני SQL Injection
+- קוד נקי וקריא
+- ביצועים טובים (MySQL יכול לשמור תוכניות ביצוע)
+
+
+סיכום
+
+המערכת בנויה בארכיטקטורה מודולרית ונקייה:
+- שכבת Model מייצגת את הנתונים
+- שכבת DAL מספקת גישה בטוחה למסד הנתונים
+- שימוש ב-Async/Await לביצועים טובים
+- הגנה מפני SQL Injection באמצעות פרמטרים
+- קוד גנרי שמאפשר שימוש חוזר

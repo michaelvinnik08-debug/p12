@@ -1,0 +1,649 @@
+חלק 7: חווית המשתמש והממשק הוויזואלי
+
+
+סוגי משתמשים
+
+
+המערכת תומכת בשני סוגי משתמשים עם ממשקים שונים:
+
+
+1. משתמש רגיל (role = 0)
+
+גישה לדפים:
+- Home (התחברות)
+- Register (הרשמה)
+- Forgot (שחזור סיסמה)
+- Chatsss (רשימת צ'אטים)
+- Chat (שיחה ספציפית)
+- Tuning (מציאת משתמשים דרך KNN)
+- Request (בקשות חברות)
+- Profile (צפייה בפרופיל)
+- Update (עדכון פרופיל)
+
+פעולות אפשריות:
+- הרשמה והתחברות למערכת
+- שליחת וקבלת הודעות בזמן אמת
+- חיפוש משתמשים לפי אימייל
+- מציאת משתמשים עם טעם מוזיקלי דומה (KNN)
+- שליחת וקבלת בקשות חברות
+- עדכון פרופיל אישי (שם, סיסמה, תמונה)
+- דיווח על משתמשים אחרים
+- עריכה ומחיקה של הודעות שלו
+
+
+2. מנהל (role = 1)
+
+גישה לכל הדפים של משתמש רגיל + דף Admin
+
+פעולות נוספות:
+- צפייה בכל הדוחות במערכת
+- חסימת משתמשים לפי משך זמן:
+  * 1 Day (יום אחד)
+  * 1 Week (שבוע)
+  * 1 Month (חודש)
+  * Forever (לצמיתות - 36500 ימים)
+- מחיקת דוחות
+- מחיקה אוטומטית של כל הדוחות על משתמש שנחסם
+
+הבדלים בממשק:
+- המנהל רואה כפתור "Admin Panel" בתפריט
+- דף Admin מציג רשימה של כל הדוחות
+- כל דיווח מציג: מזהה המדווח, מזהה המדווח עליו, סוג הדיווח
+- כפתורים מיוחדים: "Ban User" ו-"Dismiss"
+
+
+תרשים זרימה בין מסכים
+
+
+קוד Mermaid (להמרה לתרשים ב-https://mermaid.live/):
+
+graph TD
+    Start[התחלה] --> Home[Home - התחברות]
+    Home --> |לחיצה על Register| Register[Register - הרשמה]
+    Home --> |לחיצה על Forgot Password| Forgot[Forgot - שחזור סיסמה]
+    Home --> |התחברות מוצלחת| CheckRole{בדיקת תפקיד}
+    
+    Register --> |הרשמה מוצלחת| Chatsss
+    Forgot --> |איפוס סיסמה מוצלח| Home
+    
+    CheckRole --> |role = 0| Chatsss[Chatsss - רשימת צ'אטים]
+    CheckRole --> |role = 1| Chatsss
+    
+    Chatsss --> |לחיצה על צ'אט| Chat[Chat - שיחה]
+    Chatsss --> |לחיצה על Tuning| Tuning[Tuning - מציאת משתמשים KNN]
+    Chatsss --> |לחיצה על Requests| Request[Request - בקשות חברות]
+    Chatsss --> |לחיצה על Profile| Profile[Profile - פרופיל]
+    Chatsss --> |לחיצה על Update| Update[Update - עדכון פרופיל]
+    Chatsss --> |role = 1| Admin[Admin - פאנל ניהול]
+    
+    Chat --> |חזרה| Chatsss
+    Tuning --> |שליחת בקשה| Request
+    Tuning --> |חזרה| Chatsss
+    Request --> |אישור בקשה| Chat
+    Request --> |חזרה| Chatsss
+    Profile --> |חזרה| Chatsss
+    Update --> |חזרה| Chatsss
+    Admin --> |חזרה| Chatsss
+
+
+תיאור ממשקים והקוד שמאחוריהם
+
+
+1. דף Home (התחברות)
+
+
+תיאור הממשק:
+- רקע אנימציה של תווי מוזיקה צפים
+- כרטיס התחברות במרכז המסך
+- שדה Email
+- שדה Password
+- כפתור Login (כתום עם זוהר)
+- כפתור Register (לבן עם מסגרת כתומה)
+- כפתור Forgot Password
+- הודעת שגיאה/הצלחה בתחתית
+
+קוד הכפתור Login:
+
+async Task Login()
+{
+    TunersDB T = new TunersDB();
+    Tuners tuners = await T.Login(email, password);
+    
+    if (tuners != null)
+    {
+        if (DateTime.Now < tuners.bantime)
+        {
+            TimeSpan remaining = tuners.bantime - DateTime.Now;
+            if (remaining.TotalDays > 3650)
+            {
+                message = "User is permanently banned";
+            }
+            else if (remaining.TotalDays >= 1)
+            {
+                message = $"User is banned for {Math.Ceiling(remaining.TotalDays)} more days";
+            }
+            else if (remaining.TotalHours >= 1)
+            {
+                message = $"User is banned for {Math.Ceiling(remaining.TotalHours)} more hours";
+            }
+            else
+            {
+                message = $"User is banned for {Math.Ceiling(remaining.TotalMinutes)} more minutes";
+            }
+            email = "";
+            password = "";
+        }
+        else
+        {
+            tuners.picture = null;
+            await MySession.SetAsync("Tuner", tuners);
+            navigationManager.NavigateTo("/Chatsss");
+        }
+    }
+    else
+    {
+        message = "Invalid email or password";
+        email = "";
+        password = "";
+    }
+}
+
+הסבר:
+1. קורא ל-TunersDB.Login עם האימייל והסיסמה
+2. אם המשתמש נמצא - בודק אם הוא חסום:
+   - אם חסום - מציג הודעה עם זמן החסימה הנותר
+   - אם לא חסום - שומר את המשתמש ב-Session ועובר לדף Chatsss
+3. אם המשתמש לא נמצא - מציג הודעת שגיאה
+
+
+2. דף Register (הרשמה)
+
+
+תיאור הממשק:
+המערכת משתמשת בתהליך הרשמה בן 3 שלבים:
+
+שלב 1 - הזנת אימייל:
+- שדה Email
+- כפתור "Send Code"
+- כפתור "Back To Login"
+
+שלב 2 - אימות קוד:
+- הודעה: "We sent a code to [email]"
+- שדה "Enter Code" (6 ספרות)
+- כפתור "Verify"
+- כפתור "Resend Code"
+
+שלב 3 - השלמת פרטים:
+- שדה Username
+- שדה Password
+- שדה Confirm Password
+- תצוגה מקדימה של תמונת פרופיל (אופציונלי)
+- כפתור "Choose a picture"
+- כפתור "Create Account"
+
+קוד שליחת האימייל:
+
+public async Task SendEmail()
+{
+    if (string.IsNullOrWhiteSpace(email))
+    {
+        errorMsg = "Please enter your email.";
+        return;
+    }
+
+    List<string> existingEmails = await TunersDB.GetAllEmailsAsync();
+    if (existingEmails.Contains(email))
+    {
+        errorMsg = "This email is already in use.";
+        return;
+    }
+
+    try
+    {
+        Random rnd = new Random();
+        confnum = rnd.Next(100000, 999999);
+        await EmailService.SendMessage(email, confnum);
+        step = 2;
+        errorMsg = "";
+    }
+    catch (Exception ex)
+    {
+        errorMsg = "Failed to send email: " + ex.Message;
+    }
+}
+
+הסבר:
+1. בודק שהאימייל לא ריק
+2. בודק שהאימייל לא קיים במערכת
+3. יוצר קוד אקראי בן 6 ספרות
+4. שולח את הקוד באמצעות Resend API
+5. עובר לשלב 2
+
+קוד אימות הקוד:
+
+public async Task CheckCode()
+{
+    if (userCode == confnum)
+    {
+        step = 3;
+        errorMsg = "";
+        StateHasChanged();
+    }
+    else
+    {
+        errorMsg = "Wrong code, try again!";
+        StateHasChanged();
+    }
+}
+
+הסבר:
+1. משווה את הקוד שהמשתמש הזין לקוד שנשלח
+2. אם תואם - עובר לשלב 3
+3. אם לא תואם - מציג הודעת שגיאה
+
+קוד יצירת החשבון:
+
+public async Task CreateAccount()
+{
+    if (string.IsNullOrWhiteSpace(username))
+    {
+        errorMsg = "Username is required.";
+        return;
+    }
+
+    if (password != passwordconf)
+    {
+        passwordconf = "";
+        errorMsg = "Confirm Password must match Password.";
+        return;
+    }
+
+    if (!ValidatePassword(password))
+    {
+        password = "";
+        passwordconf = "";
+        return;
+    }
+
+    Tuners tuner = await TunersDB.Reg(username, email, password);
+    if (tuner == null)
+    {
+        errorMsg = "Email already in use — please go back and try another.";
+        return;
+    }
+
+    if (!string.IsNullOrEmpty(pictureBase64))
+    {
+        await TunersDB.UpdatePictureAsync(tuner.Id, pictureBase64);
+        tuner.picture = null;
+    }
+
+    await MySession.SetAsync("Tuner", tuner);
+    navigationManager.NavigateTo("/Chatsss");
+}
+
+הסבר:
+1. בודק שהשם משתמש לא ריק
+2. בודק שהסיסמאות תואמות
+3. מאמת את הסיסמה (אורך, מספר, תו מיוחד)
+4. יוצר את המשתמש במסד הנתונים
+5. אם יש תמונה - מעדכן אותה
+6. שומר את המשתמש ב-Session ועובר לדף Chatsss
+
+
+3. דף Admin (פאנל ניהול)
+
+
+תיאור הממשק:
+- כותרת עליונה עם:
+  * כפתור חזרה (←)
+  * כותרת "Admin Panel"
+  * מונה דוחות "X unsolved reports"
+- רשימת כרטיסי דוחות, כל כרטיס מכיל:
+  * Reported User ID (כתום)
+  * Reporter ID
+  * Report Details (תוכן הדיווח)
+  * כפתור "Ban User" (אדום)
+  * כפתור "Dismiss" (אפור)
+- כשלוחצים על "Ban User" - מופיעות 4 אפשרויות:
+  * 1 Day
+  * 1 Week
+  * 1 Month
+  * Forever (אדום, תופס שתי עמודות)
+
+קוד הצגת אפשרויות החסימה:
+
+private void ShowBanOptions(int reportId, int reportedUserId)
+{
+    selectedReportId = reportId;
+    showBanDurations = !showBanDurations;
+    StateHasChanged();
+}
+
+הסבר:
+1. שומר את מזהה הדיווח שנבחר
+2. מחליף את מצב התצוגה (הצג/הסתר)
+3. מעדכן את הממשק
+
+קוד חסימת משתמש:
+
+private async Task BanUser(int reportId, int reportedUserId, TimeSpan duration)
+{
+    bool success = await Ban(reportId, reportedUserId, duration);
+
+    if (success)
+    {
+        Reports = await ReportDB.GetUsersReportsAsync(reportedUserId);
+        await ReportDB.DeleteReportsListAsync(Reports);
+        Report.RemoveAll(r => r.reported == reportedUserId);
+        showBanDurations = false;
+        selectedReportId = -1;
+        StateHasChanged();
+    }
+}
+
+private async Task<bool> Ban(int reportId, int reportedUserId, TimeSpan duration)
+{
+    DateTime banUntil = DateTime.Now.Add(duration);
+    int t = await Tune.SetBanTime(reportedUserId, banUntil);
+    int r = await ReportDB.DeleteReport(reportId);
+    return r != 0 && t != 0;
+}
+
+הסבר:
+1. מחשב את תאריך סיום החסימה (עכשיו + משך הזמן)
+2. מעדכן את שדה bantime במסד הנתונים
+3. מוחק את הדיווח הנוכחי
+4. שולף את כל הדוחות על אותו משתמש
+5. מוחק את כל הדוחות (ניקוי אוטומטי)
+6. מסיר את הדוחות מהרשימה בממשק
+7. מסתיר את אפשרויות החסימה
+
+קוד דחיית דיווח:
+
+private async Task DismissReport(int reportId)
+{
+    int result = await ReportDB.DeleteReport(reportId);
+
+    if (result != 0)
+    {
+        Report.RemoveAll(r => r.id == reportId);
+        StateHasChanged();
+    }
+}
+
+הסבר:
+1. מוחק את הדיווח ממסד הנתונים
+2. מסיר את הדיווח מהרשימה בממשק
+3. מעדכן את התצוגה
+
+
+בדיקת תקינות (Validation)
+
+
+המערכת מבצעת בדיקות תקינות במספר רמות:
+
+
+1. בדיקת תקינות בצד הלקוח (Client-Side)
+
+
+בדיקת סיסמה בהרשמה:
+
+private bool ValidatePassword(string pwd)
+{
+    if (pwd.Length < 6)
+    {
+        errorMsg = "Password must be at least 6 characters long.";
+        return false;
+    }
+    if (!pwd.Any(char.IsDigit))
+    {
+        errorMsg = "Password must contain at least 1 number.";
+        return false;
+    }
+    if (!pwd.Any(ch => !char.IsLetterOrDigit(ch)))
+    {
+        errorMsg = "Password must contain at least 1 special character.";
+        return false;
+    }
+    return true;
+}
+
+בדיקות:
+- אורך מינימלי: 6 תווים
+- חייבת להכיל לפחות ספרה אחת (0-9)
+- חייבת להכיל לפחות תו מיוחד אחד (!@#$%^&* וכו')
+
+בדיקת התאמת סיסמאות:
+
+if (password != passwordconf)
+{
+    passwordconf = "";
+    errorMsg = "Confirm Password must match Password.";
+    return;
+}
+
+בדיקה:
+- הסיסמה ואימות הסיסמה חייבים להיות זהים
+
+
+בדיקת שדות ריקים:
+
+if (string.IsNullOrWhiteSpace(email))
+{
+    errorMsg = "Please enter your email.";
+    return;
+}
+
+if (string.IsNullOrWhiteSpace(username))
+{
+    errorMsg = "Username is required.";
+    return;
+}
+
+בדיקות:
+- אימייל לא יכול להיות ריק
+- שם משתמש לא יכול להיות ריק
+
+
+בדיקת גודל תמונה:
+
+if (file.Size > 5 * 1024 * 1024)
+{
+    errorMsg = "Image must be smaller than 4 MB.";
+    return;
+}
+
+בדיקה:
+- תמונת פרופיל לא יכולה לעלות על 5MB
+
+
+2. בדיקת תקינות בצד השרת (Server-Side)
+
+
+בדיקת קיום אימייל:
+
+List<string> existingEmails = await TunersDB.GetAllEmailsAsync();
+if (existingEmails.Contains(email))
+{
+    errorMsg = "This email is already in use.";
+    return;
+}
+
+בדיקה:
+- האימייל לא יכול להיות כבר רשום במערכת
+
+
+בדיקת קוד אימות:
+
+if (userCode == confnum)
+{
+    step = 3;
+}
+else
+{
+    errorMsg = "Wrong code, try again!";
+}
+
+בדיקה:
+- הקוד שהמשתמש הזין חייב להתאים לקוד שנשלח
+
+
+בדיקת התחברות:
+
+Tuners tuners = await T.Login(email, password);
+if (tuners != null)
+{
+    // התחברות מוצלחת
+}
+else
+{
+    message = "Invalid email or password";
+}
+
+בדיקה:
+- האימייל והסיסמה חייבים להתאים לרשומה במסד הנתונים
+
+
+בדיקת חסימה:
+
+if (DateTime.Now < tuners.bantime)
+{
+    // המשתמש חסום
+    message = "User is banned...";
+}
+else
+{
+    // המשתמש לא חסום - אפשר להתחבר
+}
+
+בדיקה:
+- אם המשתמש חסום - לא מאפשרים התחברות
+
+
+3. בדיקת תקינות בדיווחים
+
+
+בדיקת קטגוריית דיווח:
+
+if (!IsValidCategory(R.report))
+    return null;
+
+private bool IsValidCategory(string report)
+{
+    return GetReportCategories().Contains(report);
+}
+
+public List<string> GetReportCategories()
+{
+    return new List<string>
+    {
+        "Fake or impersonation",
+        "Inappropriate profile content",
+        "Inappropriate language",
+        "Spam or flooding",
+        "Harassment or threats",
+        "Other"
+    };
+}
+
+בדיקה:
+- סוג הדיווח חייב להיות אחת מהקטגוריות המוגדרות
+
+
+בדיקת Cooldown (זמן המתנה):
+
+Reports existing = await GetRecentReport(R.reporter, R.reported);
+if (existing != null)
+{
+    TimeSpan elapsed = DateTime.UtcNow - existing.created_at;
+    TimeSpan cooldown = TimeSpan.FromHours(24);
+    if (elapsed < cooldown)
+        return cooldown - elapsed;
+}
+
+בדיקה:
+- משתמש לא יכול לדווח על אותו משתמש יותר מפעם אחת ב-24 שעות
+
+
+בדיקת קיום המשתמש המדווח:
+
+TunersDB s = new TunersDB();
+Tuners t = await s.SelectUserID(R.reported);
+
+if (t == null || t.bantime > DateTime.UtcNow)
+    return null;
+
+בדיקות:
+- המשתמש שדווח עליו חייב להיות קיים
+- המשתמש שדווח עליו לא יכול להיות כבר חסום
+
+
+4. בדיקת תקינות ב-SQL (הגנה מפני SQL Injection)
+
+
+השימוש בפרמטרים:
+
+Dictionary<string, object> filter = new Dictionary<string, object>();
+filter.Add("email", email);
+filter.Add("password", password);
+List<Tuners> t = await SelectAllAsync(filter);
+
+הסבר:
+- במקום לבנות שאילתה עם ערכים ישירים
+- המערכת משתמשת ב-Parameters שמונעים SQL Injection
+- כל ערך מועבר בנפרד ומטופל בצורה בטוחה
+
+
+סיכום Validation
+
+
+המערכת מבצעת בדיקות תקינות ב-4 רמות:
+
+1. Client-Side Validation:
+   - בדיקות מיידיות בממשק המשתמש
+   - מונעות שליחת נתונים לא תקינים לשרת
+   - משפרות את חווית המשתמש (תגובה מהירה)
+
+2. Server-Side Validation:
+   - בדיקות נוספות בשרת
+   - מונעות עקיפה של בדיקות הלקוח
+   - מבטיחות תקינות הנתונים במסד הנתונים
+
+3. Business Logic Validation:
+   - בדיקות לוגיות (Cooldown, קטגוריות, וכו')
+   - מבטיחות שהמערכת פועלת לפי הכללים העסקיים
+
+4. Security Validation:
+   - הגנה מפני SQL Injection
+   - הגנה מפני גישה לא מורשית
+   - בדיקת הרשאות (role)
+
+
+עיצוב ואנימציות
+
+
+המערכת משתמשת בעיצוב מודרני ואנימציות:
+
+1. תווי מוזיקה צפים:
+   - 150 תווי מוזיקה באנימציה
+   - תנועה אקראית בכל הכיוונים
+   - אפקט זוהר (glow)
+   - מחזוריות אוטומטית
+
+2. צבעים:
+   - Primary: #FF7A00 (כתום)
+   - Background: גרדיאנט של חום כהה
+   - Text: #FFF3E2 (בז' בהיר)
+   - Accent: #E94E77 (ורוד)
+
+3. אפקטים:
+   - Shadow עם זוהר כתום
+   - Hover effects על כפתורים
+   - Transitions חלקות
+   - Animations על כרטיסים
+
+4. Responsive Design:
+   - תמיכה במסכים קטנים (מובייל)
+   - Grid layout גמיש
+   - Font sizes מותאמים
