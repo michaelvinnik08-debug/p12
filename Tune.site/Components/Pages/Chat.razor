@@ -696,7 +696,7 @@
     async void GoToProfile()
     {
         await MySession.DeleteAsync("Chats");
-        Tuners targetUser =await tunersDB.SelectUserID(chats.user2);
+        Tuners targetUser =await tunersDB.SelectUserID(other.Id);
         targetUser.picture = null;
         await MySession.SetAsync("Other", targetUser);
         navigationManager.NavigateTo("/Profile");
