@@ -477,13 +477,6 @@
             buttonText = "Send Request";
             StateHasChanged();
         }
-        else if (buttonText == "Request denied ): You Can Try To Send Again")
-        {
-            await requestsDB.Unsend(tuners.Id, other.Id);
-            await requestsDB.NewRequest(tuners.Id, other.Id);
-            buttonText = "Already Requested! Waiting For Answer...";
-            StateHasChanged();
-        }
         else if (buttonText == "Send Request")
         {
             await requestsDB.NewRequest(tuners.Id, other.Id);
