@@ -18,10 +18,11 @@ namespace Tune.site.Hubs
             await Groups.AddToGroupAsync(Context.ConnectionId, $"Chat_{chatId}");
         }
 
-        public async Task SendMessage(int chatId, int userId, string text, DateTime time)
+   
+        public async Task SendMessage(int chatId, int userId, string text, DateTime time, int messageId)
         {
             await Clients.Group($"Chat_{chatId}")
-                .SendAsync("ReceiveMessage", chatId, userId, text, time);
+                .SendAsync("ReceiveMessage", chatId, userId, text, time, messageId);
         }
 
         public async Task DeleteMessage(int messageId, int chatId)

@@ -414,12 +414,14 @@
             .WithAutomaticReconnect()
             .Build();
 
-        hubConnection.On<int, int, string, DateTime>("ReceiveMessage", (chatId, userId, text, time) =>
+        // Update the ReceiveMessage handler to accept and use it:
+        hubConnection.On<int, int, string, DateTime, int>("ReceiveMessage", (chatId, userId, text, time, messageId) =>
         {
             if (chatId == chats.id)
             {
                 messages.Add(new Messages
                 {
+                    id = messageId,   
                     chatid = chatId,
                     userid = userId,
                     text = text,
@@ -492,12 +494,14 @@
             // Send via SignalR
             if (hubConnection?.State == HubConnectionState.Connected)
             {
+                // In Chat.razor Send(), pass the id:
                 await hubConnection.InvokeAsync(
                     "SendMessage",
                     chats.id,
                     currentUser.Id,
                     newMsg.text,
-                    newMsg.Time
+                    newMsg.Time,
+                    newMsg.id   
                 );
                 ChatsDB chatsDB = new ChatsDB();
                 await chatsDB.UpdateAsync(message,newMsg.Time, chats);
